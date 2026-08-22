@@ -1,3 +1,6 @@
+// ==========================================
+// 📌 КОНФІГУРАЦІЯ API (Вкажіть ваш URL з GAS)
+// ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwxE0F067fGyozTM3O8C_HsgmsatkxVI8VLeeJuAcZmtpLVHPZyTK_pENTfE0-sN8vN/exec";
 
 let authToken = localStorage.getItem("edu_crm_token") || null;
@@ -15,9 +18,26 @@ const DB = {
   studentProfile: null
 };
 
+// ==========================================
+// 🐱 КЕРУВАННЯ ЛОАДЕРОМ (CAT LOADING OVERLAY)
+// ==========================================
+function showLoading() {
+  const loader = document.getElementById('catLoadingOverlay');
+  if (loader) loader.classList.remove('hidden');
+}
+
+function hideLoading() {
+  const loader = document.getElementById('catLoadingOverlay');
+  if (loader) loader.classList.add('hidden');
+}
+
+// ==========================================
+// 🌟 АНІМАЦІЯ ЕКРАНА ПРИВІТАННЯ (WELCOME SPLASH)
+// ==========================================
 const WELCOME_WORDS = [
   "Hola", "Hello", "Bonjour", "Ciao", "Guten Tag", 
-  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa"
+  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa", 
+  "Aloha", "Cześć", "Shalom", "Merhaban"
 ];
 
 let splashInterval = null;
@@ -60,7 +80,11 @@ function closeWelcomeSplash() {
   }
 }
 
+// ==========================================
+// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ
+// ==========================================
 async function checkInitialConfig() {
+  showLoading();
   try {
     const res = await fetch(`${API_URL}?action=getInitialConfig`);
     const data = await res.json();
@@ -72,73 +96,86 @@ async function checkInitialConfig() {
     }
   } catch (err) {
     console.error("Помилка ініціалізації:", err);
+  } finally {
+    hideLoading();
   }
 }
 
 async function handleAuthSubmit(e) {
   e.preventDefault();
+  showLoading();
+
   const email = document.getElementById('loginUsername').value;
   const pass = document.getElementById('loginPassword').value;
 
-  if (currentLoginRole === 'teacher' && !isTeacherRegistered) {
-    const regData = {
-      name: document.getElementById('regTeacherName').value,
-      phone: document.getElementById('regTeacherPhone').value,
+  try {
+    if (currentLoginRole === 'teacher' && !isTeacherRegistered) {
+      const regData = {
+        name: document.getElementById('regTeacherName').value,
+        phone: document.getElementById('regTeacherPhone').value,
+        email,
+        pass,
+        tg: document.getElementById('regTeacherTg').value,
+        zoom: document.getElementById('regTeacherZoom').value
+      };
+
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: JSON.stringify({ action: "registerTeacher", data: regData })
+      });
+      const result = await res.json();
+
+      if (result.success) {
+        alert("Викладача зареєстровано!");
+        isTeacherRegistered = true;
+        updateAuthUIState();
+      } else {
+        alert(result.error || "Помилка реєстрації");
+      }
+      return;
+    }
+
+    const loginData = {
+      role: currentLoginRole,
       email,
-      pass,
-      tg: document.getElementById('regTeacherTg').value,
-      zoom: document.getElementById('regTeacherZoom').value
+      pass
     };
 
     const res = await fetch(API_URL, {
       method: "POST",
-      body: JSON.stringify({ action: "registerTeacher", data: regData })
+      body: JSON.stringify({ action: "login", data: loginData })
     });
     const result = await res.json();
 
-    if (result.success) {
-      alert("Викладача зареєстровано!");
-      isTeacherRegistered = true;
-      updateAuthUIState();
-    } else {
-      alert(result.error || "Помилка реєстрації");
+    if (result.isFirstLoginRequired) {
+      pendingStudentEmail = result.email;
+      openModal('firstLoginModal');
+      return;
     }
-    return;
-  }
 
-  const loginData = {
-    role: currentLoginRole,
-    email,
-    pass
-  };
-
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "login", data: loginData })
-  });
-  const result = await res.json();
-
-  if (result.isFirstLoginRequired) {
-    pendingStudentEmail = result.email;
-    openModal('firstLoginModal');
-    return;
-  }
-
-  if (result.success) {
-    authToken = result.token;
-    localStorage.setItem("edu_crm_token", authToken);
-    await loadProtectedData();
-  } else {
-    alert(result.error || "Помилка входу");
+    if (result.success) {
+      authToken = result.token;
+      localStorage.setItem("edu_crm_token", authToken);
+      await loadProtectedData();
+    } else {
+      alert(result.error || "Помилка входу");
+    }
+  } catch (err) {
+    console.error("Помилка входу:", err);
+  } finally {
+    hideLoading();
   }
 }
 
 async function handleFirstLoginPasswordSubmit(e) {
   e.preventDefault();
+  showLoading();
+
   const newPass = document.getElementById('firstLoginPassInput').value;
   const confirmPass = document.getElementById('firstLoginPassConfirmInput').value;
 
   if (newPass !== confirmPass) {
+    hideLoading();
     alert("Паролі не збігаються!");
     return;
   }
@@ -150,19 +187,25 @@ async function handleFirstLoginPasswordSubmit(e) {
     newPass
   };
 
-  const res = await fetch(API_URL, {
-    method: "POST",
-    body: JSON.stringify({ action: "login", data: loginData })
-  });
-  const result = await res.json();
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "login", data: loginData })
+    });
+    const result = await res.json();
 
-  if (result.success) {
-    closeModal('firstLoginModal');
-    authToken = result.token;
-    localStorage.setItem("edu_crm_token", authToken);
-    await loadProtectedData();
-  } else {
-    alert(result.error || "Помилка збереження пароля");
+    if (result.success) {
+      closeModal('firstLoginModal');
+      authToken = result.token;
+      localStorage.setItem("edu_crm_token", authToken);
+      await loadProtectedData();
+    } else {
+      alert(result.error || "Помилка збереження пароля");
+    }
+  } catch (err) {
+    console.error("Помилка першого входу:", err);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -254,6 +297,9 @@ function applyRolePermissions() {
   }
 }
 
+// ==========================================
+// 🎨 РЕНДЕР ТА ІНТЕРФЕЙС
+// ==========================================
 function renderApp() {
   renderTeacherProfile();
   renderTeacherStudentList();
