@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LingoLoom - Навчальний Кабінет</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- APPLE-STYLE WELCOME SPLASH SCREEN -->
+  <div id="welcomeSplash" class="welcome-splash">
+    <!-- Контейнер для динамічних випадкових слів -->
+    <div id="splashBgCanvas" class="splash-bg-canvas"></div>
+
+    <div class="splash-card">
+      <div class="splash-logo-icon">🌐</div>
+      <h1 class="splash-title">Ласкаво просимо в LingoLoom!</h1>
+      <p class="splash-subtitle">Ваш інтерактивний простір вивчення мов та керування навчанням</p>
+      <button class="btn splash-btn" onclick="closeWelcomeSplash()">Увійти до платформи →</button>
+    </div>
+
+    <div class="splash-footer">
+      © Всі права захищені WhiteLakeViz
+    </div>
+  </div>
+
+  <!-- LOGIN & REGISTRATION SCREEN -->
+  <div id="loginScreen" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <h2>🌐 LingoLoom</h2>
+        <p id="loginSubtitle" style="font-size:13px; color:var(--text-muted);">Вхід у особистий кабінет</p>
+      </div>
+
+      <div class="role-selector">
+        <button class="role-btn active" onclick="setLoginRole('teacher')">👩‍🏫 Викладач</button>
+        <button class="role-btn" onclick="setLoginRole('student')">👨‍🎓 Учень</button>
+      </div>
+
+      <form id="authForm" onsubmit="handleAuthSubmit(event)">
+        
+        <div id="teacherRegisterFields" class="hidden">
+          <div class="form-group">
+            <label>ПІБ Викладача:</label>
+            <input type="text" id="regTeacherName" placeholder="Ольга Сокол">
+          </div>
+          <div class="form-group">
+            <label>Телефон:</label>
+            <input type="text" id="regTeacherPhone" placeholder="+380...">
+          </div>
+          <div class="form-group">
+            <label>Telegram:</label>
+            <input type="text" id="regTeacherTg" placeholder="@username">
+          </div>
+          <div class="form-group">
+            <label>Посилання Zoom:</label>
+            <input type="text" id="regTeacherZoom" placeholder="https://zoom.us/j/...">
+          </div>
+        </div>
+
+        <div class="form-group hidden" id="studentLoginGroup">
+          <label>Оберіть свій профіль:</label>
+          <select id="loginStudentSelect"></select>
+        </div>
+        
+        <div class="form-group">
+          <label>Логін / Email:</label>
+          <input type="email" id="loginUsername" required placeholder="email@domain.com">
+        </div>
+        
+        <div class="form-group">
+          <label>Пароль:</label>
+          <input type="password" id="loginPassword" required placeholder="******">
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="btn" style="width:100%; margin-top:12px;">Увійти в кабінет</button>
+      </form>
+
+      <div class="card-copyright">
+        © Всі права захищені WhiteLakeViz
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRST TIME LOGIN FOR STUDENT -->
+  <div id="firstLoginModal" class="modal-overlay hidden" style="z-index:2500;">
+    <div class="modal" style="max-width:400px;">
+      <div class="card-header">
+        <span class="card-title">🔐 Перший вхід: Створення пароля</span>
+      </div>
+      <p style="font-size:13px; color:var(--text-muted); margin-bottom:16px;">
+        Ви увійшли вперше. Будь ласка, вигадайте новий пароль для доступу до вашого кабінету в LingoLoom.
+      </p>
+      <form onsubmit="handleFirstLoginPasswordSubmit(event)">
+        <div class="form-group">
+          <label>Новий пароль:</label>
+          <input type="password" id="firstLoginPassInput" required minlength="4">
+        </div>
+        <div class="form-group">
+          <label>Підтвердіть новий пароль:</label>
+          <input type="password" id="firstLoginPassConfirmInput" required minlength="4">
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Зберегти пароль та увійти</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP CONTAINER -->
+  <div id="appContainer" class="hidden">
+    
+    <header class="app-header">
+      <div class="logo">🌐 LingoLoom Dashboard</div>
+      <div style="display:flex; align-items:center; gap:16px;">
+        <span id="userStatusBadge" class="badge badge-paid">---</span>
+        <button class="btn btn-secondary btn-sm teacher-only" onclick="openModal('editTeacherPassModal')">🔑 Змінити пароль вчителя</button>
+        <button class="btn btn-secondary btn-sm" onclick="toggleTheme()">🌗 Тема</button>
+        <button class="btn btn-secondary btn-sm" onclick="logout()">Вихід</button>
+      </div>
+    </header>
+
+    <div class="main-layout">
+      
+      <aside>
+        <div id="teacherAdminBox" class="card">
+          <div class="card-header">
+            <span class="card-title">Список Учнів</span>
+            <button class="btn btn-sm" onclick="openModal('addStudentModal')">+ Учень</button>
+          </div>
+          <div class="form-group">
+            <select id="teacherStudentSelect" onchange="selectStudent(this.value)"></select>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Кабінет Учня</span>
+            <div class="teacher-only">
+              <button class="btn btn-secondary btn-sm" onclick="openEditStudentModal()" title="Редагувати дані">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="handleDeleteStudent()" title="Видалити учня з бази">🗑️</button>
+            </div>
+          </div>
+          
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:16px;">
+            <div class="avatar-circle" id="stAvatar">--</div>
+            <div>
+              <h3 id="stName" style="font-size:16px;">---</h3>
+              <span class="badge badge-planned" id="stLevel">Рівень: --</span>
+            </div>
+          </div>
+
+          <div class="contact-item"><span>Телефон:</span> <strong id="stPhone">-</strong></div>
+          <div class="contact-item"><span>Email:</span> <strong id="stEmail">-</strong></div>
+          <div class="contact-item"><span>Telegram:</span> <strong id="stTg">-</strong></div>
+          <div class="contact-item"><span>Примітка:</span> <i id="stNotes">-</i></div>
+
+          <hr style="border:0; border-top:1px solid var(--border); margin:12px 0;">
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:13px; color:var(--text-muted);">Баланс занять:</span>
+            <strong style="font-size:20px; color:var(--success);" id="stBalance">0 уроків</strong>
+          </div>
+        </div>
+
+        <div class="card" id="teacherContactsCard">
+          <div class="card-header">
+            <span class="card-title">👨‍🏫 Мій Викладач</span>
+            <button class="btn btn-secondary btn-sm teacher-only" onclick="openModal('editTeacherModal')">✏️ Редагувати</button>
+          </div>
+          <div style="display:flex; align-items:center; gap:12px; margin-bottom:12px;">
+            <div class="avatar-circle" style="background:#8b5cf6;" id="tAvatar">--</div>
+            <div>
+              <strong id="tName">-</strong>
+              <div style="font-size:12px; color:var(--text-muted);">Викладач LingoLoom</div>
+            </div>
+          </div>
+          <div class="contact-item"><span>Телефон:</span> <strong id="tPhone">-</strong></div>
+          <div class="contact-item"><span>Email:</span> <strong id="tEmail">-</strong></div>
+          <div class="contact-item"><span>Telegram:</span> <a href="#" id="tTgLink" target="_blank" style="color:var(--primary); font-weight:bold;"><strong id="tTg">-</strong></a></div>
+          <div class="contact-item"><span>Zoom:</span> <a href="#" id="tZoom" target="_blank" style="color:var(--primary);">Перейти в Zoom</a></div>
+        </div>
+
+        <div id="addLessonBox" class="card teacher-only">
+          <div class="card-header">
+            <span class="card-title">Запланувати урок</span>
+          </div>
+          <form onsubmit="handleAddLesson(event)">
+            <div class="form-group">
+              <label>Дата та час уроку:</label>
+              <input type="datetime-local" id="newLessonDate" required>
+            </div>
+            <div class="form-group">
+              <label>Тема уроку:</label>
+              <input type="text" id="newLessonTopic" placeholder="Тема уроку..." required>
+            </div>
+            <div class="form-group">
+              <label>Статус оплати уроку:</label>
+              <select id="newLessonIsPaid">
+                <option value="paid">Оплачено</option>
+                <option value="unpaid" selected>Не оплачено</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Домашнє завдання:</label>
+              <input type="text" id="newLessonHW" placeholder="Вправа / Завдання...">
+            </div>
+            <div class="form-group">
+              <label>Дедлайн ДЗ (Дата та час):</label>
+              <input type="datetime-local" id="newLessonDeadline" required>
+            </div>
+            <div class="form-group">
+              <label>Посилання на Drive (Конспект/PDF):</label>
+              <input type="text" id="newLessonLink" placeholder="https://drive.google.com/...">
+            </div>
+            <button type="submit" class="btn" style="width:100%;">Додати в журнал</button>
+          </form>
+        </div>
+      </aside>
+
+      <main>
+        <div class="nav-tabs">
+          <button class="tab-btn active" onclick="switchTab('progressTab', this)">📝 Навчальний прогрес</button>
+          <button class="tab-btn" onclick="switchTab('testsTab', this)">📋 Контрольні роботи</button>
+          <button class="tab-btn" onclick="switchTab('calendarTab', this)">📅 Графік занять</button>
+          <button class="tab-btn" onclick="switchTab('paymentsTab', this)">💳 Транзакції та Оплати</button>
+        </div>
+
+        <div id="progressTab">
+          <div id="overdueAlertBox" class="alert-box hidden">
+            <div>
+              <strong>⚠️ Увага! У вас є прострочене домашнє завдання.</strong><br>
+              Термін здачі минув. Будь ласка, зверніться до викладача для узгодження перездачі.
+            </div>
+            <a href="#" id="alertTgBtn" target="_blank" class="btn btn-sm btn-danger">Написати вчителю</a>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Журнал занять та матеріали</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Дата уроку</th>
+                  <th>Тема уроку</th>
+                  <th>Оплата</th>
+                  <th>ДЗ та Дедлайн</th>
+                  <th>Виконане ДЗ (Учень)</th>
+                  <th>Статус</th>
+                  <th>Дія</th>
+                </tr>
+              </thead>
+              <tbody id="lessonsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="testsTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Контрольні роботи та тестування</span>
+              <button class="btn btn-sm teacher-only" onclick="openModal('createTestModal')">+ Створити та призначити тест</button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Назва тесту</th>
+                  <th>Запланована дата</th>
+                  <th>Дедлайн</th>
+                  <th>Питань</th>
+                  <th>Результат / Оцінка</th>
+                  <th>Дія</th>
+                </tr>
+              </thead>
+              <tbody id="testsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="calendarTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Розклад на місяць</span>
+            </div>
+            <div id="calendarGrid" style="display:grid; grid-template-columns: repeat(7, 1fr); gap:8px; text-align:center;"></div>
+          </div>
+        </div>
+
+        <div id="paymentsTab" class="hidden">
+          <div class="card">
+            <div class="card-header">
+              <span class="card-title">Історія оплат та статус занять</span>
+              <button class="btn btn-sm teacher-only" onclick="openModal('addPaymentModal')">+ Поповнити баланс</button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Тип / Опис</th>
+                  <th>Період оплати</th>
+                  <th>Кількість занять</th>
+                  <th>Сума / Статус</th>
+                </tr>
+              </thead>
+              <tbody id="paymentsTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- MAIN APP FOOTER -->
+    <footer class="app-footer">
+      LingoLoom Platform &copy; Всі права захищені WhiteLakeViz
+    </footer>
+  </div>
+
+  <!-- MODALS -->
+
+  <div id="editTeacherPassModal" class="modal-overlay hidden">
+    <div class="modal" style="max-width:400px;">
+      <div class="card-header">
+        <span class="card-title">Зміна пароля викладача</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('editTeacherPassModal')">✕</button>
+      </div>
+      <form onsubmit="handleTeacherPassChange(event)">
+        <div class="form-group">
+          <label>Старий пароль:</label>
+          <input type="password" id="oldTeacherPassInput" required>
+        </div>
+        <div class="form-group">
+          <label>Новий пароль:</label>
+          <input type="password" id="newTeacherPassInput" required minlength="4">
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Оновити пароль</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="imageZoomModal" class="modal-overlay modal-overlay-zoom hidden" onclick="closeModal('imageZoomModal')">
+    <div class="image-zoom-modal" onclick="event.stopPropagation()">
+      <button class="btn btn-secondary btn-sm" onclick="closeModal('imageZoomModal')" style="position:absolute; top:-40px; right:0; color:#fff; border-color:#fff;">🔍 Закрити ✕</button>
+      <img id="zoomedImageDisplay" class="image-zoom-content" src="" alt="Zoomed View">
+    </div>
+  </div>
+
+  <div id="editStudentModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Редагувати дані учня</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('editStudentModal')">✕</button>
+      </div>
+      <form onsubmit="handleEditStudentSubmit(event)">
+        <div class="form-group"><label>ПІБ Учня:</label><input type="text" id="editStName" required></div>
+        <div class="form-group"><label>Телефон:</label><input type="text" id="editStPhone"></div>
+        <div class="form-group"><label>Email (Логін):</label><input type="email" id="editStEmail" required></div>
+        <div class="form-group"><label>Пароль:</label><input type="text" id="editStPass"></div>
+        <div class="form-group"><label>Telegram:</label><input type="text" id="editStTg"></div>
+        <div class="form-group"><label>Рівень:</label><input type="text" id="editStLevel"></div>
+        <div class="form-group"><label>Примітка:</label><textarea id="editStNotes" rows="2"></textarea></div>
+        <button type="submit" class="btn" style="width:100%;">Зберегти зміни</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="createTestModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Створити контрольну роботу</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('createTestModal')">✕</button>
+      </div>
+      <form onsubmit="handleCreateTestSubmit(event)">
+        <div class="form-group">
+          <label>Назва контрольної роботи:</label>
+          <input type="text" id="testTitleInput" required placeholder="Підсумковий тест">
+        </div>
+        <div class="form-group">
+          <label>Запланована дата відкриття:</label>
+          <input type="datetime-local" id="testDateInput" required>
+        </div>
+        <div class="form-group">
+          <label>Дедлайн виконання:</label>
+          <input type="datetime-local" id="testDeadlineInput" required>
+        </div>
+
+        <div style="margin:16px 0; border-top:1px solid var(--border); padding-top:12px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong style="font-size:14px;">Конструктор питань:</strong>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="addQuestionField()">+ Додати питання</button>
+          </div>
+          <div id="questionsContainer"></div>
+        </div>
+
+        <button type="submit" class="btn" style="width:100%;">Зберегти та призначити тест</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="takeTestModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title" id="takeTestTitle">Контрольна робота</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('takeTestModal')">✕</button>
+      </div>
+
+      <div class="test-progress-container">
+        <div class="test-progress-header">
+          <span>Прогрес виконання:</span>
+          <span id="testProgressText">0 з 0 дано відповідей</span>
+        </div>
+        <div class="test-progress-bar-bg">
+          <div id="testProgressBarFill" class="test-progress-bar-fill"></div>
+        </div>
+      </div>
+
+      <form onsubmit="handleStudentTestSubmit(event)">
+        <input type="hidden" id="takeTestId">
+        <div id="takeTestQuestionsContainer"></div>
+        <button type="submit" class="btn" style="width:100%; margin-top:16px;">Завершити та здати тест</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="reviewTestModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title" id="reviewTestTitle">Результати тесту</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('reviewTestModal')">✕</button>
+      </div>
+      <div id="reviewTestDetails"></div>
+    </div>
+  </div>
+
+  <div id="submitHwModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Здати домашнє завдання</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('submitHwModal')">✕</button>
+      </div>
+      <form onsubmit="handleStudentHwSubmit(event)">
+        <input type="hidden" id="activeLessonIdForHw">
+        <div class="form-group">
+          <label>Посилання на виконане ДЗ:</label>
+          <input type="text" id="hwSubmissionLink" placeholder="https://drive.google.com/file/d/..." required>
+        </div>
+        <div class="form-group">
+          <label>Коментар для вчителя (необов'язково):</label>
+          <textarea id="hwSubmissionComment" rows="3"></textarea>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Надіслати вчителю</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="extendDeadlineModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Продовжити дедлайн ДЗ</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('extendDeadlineModal')">✕</button>
+      </div>
+      <form onsubmit="handleExtendDeadlineSubmit(event)">
+        <input type="hidden" id="activeLessonIdForDeadline">
+        <div class="form-group">
+          <label>Новий дедлайн (Дата та час):</label>
+          <input type="datetime-local" id="newDeadlineInput" required>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Оновити термін</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="addStudentModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Новий учень</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('addStudentModal')">✕</button>
+      </div>
+      <form onsubmit="handleAddStudent(event)">
+        <div class="form-group"><label>ПІБ Учня:</label><input type="text" id="newStName" required></div>
+        <div class="form-group"><label>Телефон:</label><input type="text" id="newStPhone" placeholder="+380..."></div>
+        <div class="form-group"><label>Email (Логін):</label><input type="email" id="newStEmail" required></div>
+        <div class="form-group"><label>Telegram:</label><input type="text" id="newStTg" placeholder="@username"></div>
+        <div class="form-group"><label>Рівень:</label><input type="text" id="newStLevel" value="A1"></div>
+        <div class="form-group"><label>Примітка:</label><textarea id="newStNotes" rows="2"></textarea></div>
+        <button type="submit" class="btn" style="width:100%;">Створити кабінет</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="editTeacherModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Редагувати мої дані (Вчитель)</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('editTeacherModal')">✕</button>
+      </div>
+      <form onsubmit="handleEditTeacher(event)">
+        <div class="form-group"><label>ПІБ Вчителя:</label><input type="text" id="editTName" required></div>
+        <div class="form-group"><label>Телефон:</label><input type="text" id="editTPhone" required></div>
+        <div class="form-group"><label>Email:</label><input type="email" id="editTEmail" required></div>
+        <div class="form-group"><label>Telegram:</label><input type="text" id="editTTg" required></div>
+        <div class="form-group"><label>Посилання Zoom:</label><input type="text" id="editTZoom" required></div>
+        <button type="submit" class="btn" style="width:100%;">Зберегти зміни</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="addPaymentModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Внести оплату за період</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('addPaymentModal')">✕</button>
+      </div>
+      <form onsubmit="handleAddPayment(event)">
+        <div class="form-group"><label>Кількість занять:</label><input type="number" id="payCount" value="8" required></div>
+        <div class="form-group"><label>Сума (грн):</label><input type="number" id="paySum" value="4000" required></div>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+          <div class="form-group"><label>Оплачено з дати:</label><input type="date" id="payPeriodFrom" required></div>
+          <div class="form-group"><label>Оплачено по дату:</label><input type="date" id="payPeriodTo" required></div>
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Зарахувати оплату</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
