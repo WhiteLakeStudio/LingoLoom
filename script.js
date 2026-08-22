@@ -4,6 +4,7 @@ let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
 let currentLoginRole = 'teacher';
 let isTeacherRegistered = false;
+let pendingStudentEmail = null;
 
 const DB = {
   config: null,
@@ -14,13 +15,9 @@ const DB = {
   studentProfile: null
 };
 
-// ==========================================
-// 🌟 АНІМАЦІЯ ЕКРАНА ПРИВІТАННЯ (WELCOME SPLASH)
-// ==========================================
 const WELCOME_WORDS = [
   "Hola", "Hello", "Bonjour", "Ciao", "Guten Tag", 
-  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa", 
-  "Aloha", "Cześć", "Shalom", "Merhaban"
+  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa"
 ];
 
 let splashInterval = null;
@@ -59,15 +56,10 @@ function closeWelcomeSplash() {
   if (splash) {
     if (splashInterval) clearInterval(splashInterval);
     splash.classList.add('fade-out');
-    setTimeout(() => {
-      splash.style.display = 'none';
-    }, 600);
+    setTimeout(() => { splash.style.display = 'none'; }, 600);
   }
 }
 
-// ==========================================
-// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ
-// ==========================================
 async function checkInitialConfig() {
   try {
     const res = await fetch(`${API_URL}?action=getInitialConfig`);
@@ -105,7 +97,7 @@ async function handleAuthSubmit(e) {
     const result = await res.json();
 
     if (result.success) {
-      alert("Викладача зареєстровано! Увійдіть з новими даними.");
+      alert("Викладача зареєстровано!");
       isTeacherRegistered = true;
       updateAuthUIState();
     } else {
@@ -117,8 +109,45 @@ async function handleAuthSubmit(e) {
   const loginData = {
     role: currentLoginRole,
     email,
-    pass,
-    studentId: currentLoginRole === 'student' ? DB.selectedStudentId : null
+    pass
+  };
+
+  const res = await fetch(API_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "login", data: loginData })
+  });
+  const result = await res.json();
+
+  if (result.isFirstLoginRequired) {
+    pendingStudentEmail = result.email;
+    openModal('firstLoginModal');
+    return;
+  }
+
+  if (result.success) {
+    authToken = result.token;
+    localStorage.setItem("edu_crm_token", authToken);
+    await loadProtectedData();
+  } else {
+    alert(result.error || "Помилка входу");
+  }
+}
+
+async function handleFirstLoginPasswordSubmit(e) {
+  e.preventDefault();
+  const newPass = document.getElementById('firstLoginPassInput').value;
+  const confirmPass = document.getElementById('firstLoginPassConfirmInput').value;
+
+  if (newPass !== confirmPass) {
+    alert("Паролі не збігаються!");
+    return;
+  }
+
+  const loginData = {
+    role: "student",
+    email: pendingStudentEmail,
+    isFirstLogin: true,
+    newPass
   };
 
   const res = await fetch(API_URL, {
@@ -128,11 +157,12 @@ async function handleAuthSubmit(e) {
   const result = await res.json();
 
   if (result.success) {
+    closeModal('firstLoginModal');
     authToken = result.token;
     localStorage.setItem("edu_crm_token", authToken);
     await loadProtectedData();
   } else {
-    alert(result.error || "Помилка входу");
+    alert(result.error || "Помилка збереження пароля");
   }
 }
 
@@ -224,9 +254,6 @@ function applyRolePermissions() {
   }
 }
 
-// ==========================================
-// 🎨 РЕНДЕР ТА ІНТЕРФЕЙС
-// ==========================================
 function renderApp() {
   renderTeacherProfile();
   renderTeacherStudentList();
@@ -342,40 +369,12 @@ function setLoginRole(role) {
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
   event.target.classList.add('active');
 
-  const stGroup = document.getElementById('studentLoginGroup');
   if (role === 'student') {
-    stGroup.classList.remove('hidden');
     document.getElementById('teacherRegisterFields').classList.add('hidden');
-    populateStudentSelect();
+    document.getElementById('loginSubtitle').innerText = "Вхід у кабінет учня";
   } else {
-    stGroup.classList.add('hidden');
     updateAuthUIState();
   }
-}
-
-function populateStudentSelect() {
-  const select = document.getElementById('loginStudentSelect');
-  select.innerHTML = '';
-  const studentKeys = Object.keys(DB.students);
-  if (studentKeys.length === 0) {
-    select.innerHTML = `<option value="">Немає створених учнів</option>`;
-    return;
-  }
-  studentKeys.forEach(id => {
-    const st = DB.students[id];
-    const opt = document.createElement('option');
-    opt.value = st.id;
-    opt.innerText = st.name;
-    select.appendChild(opt);
-  });
-  if (DB.selectedStudentId && DB.students[DB.selectedStudentId]) {
-    select.value = DB.selectedStudentId;
-    document.getElementById('loginUsername').value = DB.students[DB.selectedStudentId].email;
-  }
-  select.onchange = (e) => {
-    DB.selectedStudentId = e.target.value;
-    document.getElementById('loginUsername').value = DB.students[e.target.value].email;
-  };
 }
 
 function renderLessons() {
