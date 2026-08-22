@@ -14,9 +14,13 @@ const DB = {
   studentProfile: null
 };
 
+// ==========================================
+// 🌟 АНІМАЦІЯ ЕКРАНА ПРИВІТАННЯ (WELCOME SPLASH)
+// ==========================================
 const WELCOME_WORDS = [
   "Hola", "Hello", "Bonjour", "Ciao", "Guten Tag", 
-  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa"
+  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa", 
+  "Aloha", "Cześć", "Shalom", "Merhaban"
 ];
 
 let splashInterval = null;
@@ -55,10 +59,15 @@ function closeWelcomeSplash() {
   if (splash) {
     if (splashInterval) clearInterval(splashInterval);
     splash.classList.add('fade-out');
-    setTimeout(() => { splash.classList.add('hidden'); }, 800);
+    setTimeout(() => {
+      splash.style.display = 'none';
+    }, 600);
   }
 }
 
+// ==========================================
+// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ
+// ==========================================
 async function checkInitialConfig() {
   try {
     const res = await fetch(`${API_URL}?action=getInitialConfig`);
@@ -96,7 +105,7 @@ async function handleAuthSubmit(e) {
     const result = await res.json();
 
     if (result.success) {
-      alert("Викладача зареєстровано!");
+      alert("Викладача зареєстровано! Увійдіть з новими даними.");
       isTeacherRegistered = true;
       updateAuthUIState();
     } else {
@@ -198,7 +207,7 @@ function updateAuthUIState() {
 
 function completeLogin() {
   document.getElementById('loginScreen').classList.add('hidden');
-  document.getElementById('welcomeSplash').classList.add('hidden');
+  closeWelcomeSplash();
   document.getElementById('appContainer').classList.remove('hidden');
   applyRolePermissions();
   renderApp();
@@ -215,6 +224,9 @@ function applyRolePermissions() {
   }
 }
 
+// ==========================================
+// 🎨 РЕНДЕР ТА ІНТЕРФЕЙС
+// ==========================================
 function renderApp() {
   renderTeacherProfile();
   renderTeacherStudentList();
@@ -659,73 +671,3 @@ window.onload = function() {
   startRandomWordsAnimation();
   checkInitialConfig();
 };
-
-function closeWelcomeSplash() {
-  const splash = document.getElementById('welcomeSplash');
-  if (splash) {
-    splash.classList.add('fade-out');
-    setTimeout(() => {
-      splash.classList.add('hidden');
-    }, 600);
-  }
-}
-
-const WELCOME_WORDS = [
-  "Hola", "Hello", "Bonjour", "Ciao", "Guten Tag", 
-  "Olá", "Nǐ Hǎo", "Namaste", "Вітаємо", "Konnichiwa", 
-  "Aloha", "Cześć", "Shalom", "Merhaban"
-];
-
-let splashInterval = null;
-
-function startRandomWordsAnimation() {
-  const container = document.getElementById('splashBgCanvas');
-  if (!container) return;
-
-  function spawnWord() {
-    const wordText = WELCOME_WORDS[Math.floor(Math.random() * WELCOME_WORDS.length)];
-    const wordEl = document.createElement('span');
-    wordEl.className = 'random-word';
-    wordEl.innerText = wordText;
-
-    // Випадкові координати (з відступами від країв)
-    const posX = Math.random() * 80 + 10; 
-    const posY = Math.random() * 80 + 10;
-    const fontSize = Math.floor(Math.random() * 28) + 20; // 20px - 48px
-
-    wordEl.style.left = `${posX}%`;
-    wordEl.style.top = `${posY}%`;
-    wordEl.style.fontSize = `${fontSize}px`;
-
-    container.appendChild(wordEl);
-
-    // Видаляємо елемент після завершення анімації (5 сек)
-    setTimeout(() => {
-      wordEl.remove();
-    }, 5000);
-  }
-
-  // Початковий запуск кількох слів відразу
-  for (let i = 0; i < 6; i++) {
-    setTimeout(spawnWord, i * 400);
-  }
-
-  // Постійна поява нових слів кожні 700 мс
-  splashInterval = setInterval(spawnWord, 700);
-}
-
-function closeWelcomeSplash() {
-  const splash = document.getElementById('welcomeSplash');
-  if (splash) {
-    if (splashInterval) clearInterval(splashInterval);
-    splash.classList.add('fade-out');
-    setTimeout(() => {
-      splash.classList.add('hidden');
-    }, 800);
-  }
-}
-
-// Запускаємо анімацію при відкритті сторінки
-window.addEventListener('DOMContentLoaded', () => {
-  startRandomWordsAnimation();
-});
