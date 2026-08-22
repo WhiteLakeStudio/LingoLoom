@@ -379,6 +379,86 @@ function renderStudentProfile() {
   balEl.style.color = balance < 0 ? 'var(--danger)' : 'var(--success)';
 }
 
+// ==========================================
+// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ (ЗАВЕРШЕННЯ, ОПЛАТА, ДЕДЛАЙН)
+// ==========================================
+function completeLesson(id) {
+  const stId = DB.selectedStudentId;
+  if (!stId || !DB.lessons[stId]) return;
+  const l = DB.lessons[stId].find(item => item.id === id);
+  if (l) { 
+    l.status = 'done'; 
+    syncData("saveLessons", DB.lessons);
+    renderApp(); 
+  }
+}
+
+function toggleLessonPayment(lessonId) {
+  const stId = DB.selectedStudentId;
+  if (!stId || !DB.lessons[stId]) return;
+  const l = DB.lessons[stId].find(item => item.id === lessonId);
+  if (l) {
+    l.isPaid = (l.isPaid === 'paid') ? 'unpaid' : 'paid';
+    syncData("saveLessons", DB.lessons);
+    renderApp();
+  }
+}
+
+function openExtendModal(lessonId) {
+  document.getElementById('activeLessonIdForDeadline').value = lessonId;
+  const stId = DB.selectedStudentId;
+  const lesson = DB.lessons[stId].find(l => l.id === lessonId);
+  if (lesson && lesson.deadline) {
+    document.getElementById('newDeadlineInput').value = lesson.deadline;
+  }
+  openModal('extendDeadlineModal');
+}
+
+function handleExtendDeadlineSubmit(e) {
+  e.preventDefault();
+  const lessonId = Number(document.getElementById('activeLessonIdForDeadline').value);
+  const stId = DB.selectedStudentId;
+  const lesson = DB.lessons[stId].find(l => l.id === lessonId);
+
+  if (lesson) {
+    lesson.deadline = document.getElementById('newDeadlineInput').value;
+    syncData("saveLessons", DB.lessons);
+    renderApp();
+  }
+  closeModal('extendDeadlineModal');
+}
+
+function openHwModal(lessonId) {
+  document.getElementById('activeLessonIdForHw').value = lessonId;
+  const stId = DB.selectedStudentId;
+  const lesson = DB.lessons[stId].find(l => l.id === lessonId);
+  if (lesson) {
+    document.getElementById('hwSubmissionLink').value = lesson.studentHwLink || '';
+    document.getElementById('hwSubmissionComment').value = lesson.studentHwComment || '';
+  }
+  openModal('submitHwModal');
+}
+
+function handleStudentHwSubmit(e) {
+  e.preventDefault();
+  const lessonId = Number(document.getElementById('activeLessonIdForHw').value);
+  const stId = DB.selectedStudentId;
+  const lesson = DB.lessons[stId].find(l => l.id === lessonId);
+
+  if (lesson) {
+    lesson.studentHwLink = document.getElementById('hwSubmissionLink').value;
+    lesson.studentHwComment = document.getElementById('hwSubmissionComment').value;
+    lesson.status = 'done';
+    syncData("saveLessons", DB.lessons);
+    renderApp();
+  }
+  closeModal('submitHwModal');
+}
+
+function alertOverdue() {
+  alert("Термін здачі минув. Зверніться до викладача.");
+}
+
 function handleAddStudent(e) {
   e.preventDefault();
   const id = 'st_' + Date.now();
