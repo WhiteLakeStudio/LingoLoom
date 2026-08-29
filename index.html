@@ -247,8 +247,12 @@
                 <input type="text" id="newLessonHW" placeholder="Вправа / Опис...">
               </div>
               <div class="form-group full-width">
-                <label>Посилання на матеріали (Drive):</label>
-                <input type="text" id="newLessonLink" placeholder="https://drive.google.com/...">
+                <label>Коментар викладача до уроку:</label>
+                <textarea id="newLessonComment" rows="2" placeholder="Зауваження, нотатки або підказка до теми..."></textarea>
+              </div>
+              <div class="form-group full-width">
+                <label>Посилання на матеріали (по одному в рядку):</label>
+                <textarea id="newLessonLinks" rows="3" placeholder="https://drive.google.com/...&#10;https://miro.com/..."></textarea>
               </div>
               <button type="submit" class="btn full-width">Додати урок в розклад</button>
             </form>
@@ -513,9 +517,10 @@
         <div class="form-group"><label>Дата та час:</label><input type="datetime-local" id="editLessonDate" required></div>
         <div class="form-group"><label>Тема уроку:</label><input type="text" id="editLessonTopic" required></div>
         <div class="form-group"><label>Статус оплати:</label><select id="editLessonIsPaid"><option value="paid">Оплачено</option><option value="unpaid">Не оплачено</option></select></div>
-        <div class="form-group"><label>Домашнє завдання:</label><input type="text" id="editLessonHW"></div>
         <div class="form-group"><label>Дедлайн ДЗ:</label><input type="datetime-local" id="editLessonDeadline" required></div>
-        <div class="form-group"><label>Матеріали Drive:</label><input type="text" id="editLessonLink"></div>
+        <div class="form-group full-width"><label>Домашнє завдання:</label><input type="text" id="editLessonHW"></div>
+        <div class="form-group full-width"><label>Коментар викладача:</label><textarea id="editLessonComment" rows="2"></textarea></div>
+        <div class="form-group full-width"><label>Посилання (по одному в рядку):</label><textarea id="editLessonLinks" rows="3"></textarea></div>
         <button type="submit" class="btn full-width">Зберегти зміни</button>
       </form>
     </div>
