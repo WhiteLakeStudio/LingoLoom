@@ -19,6 +19,31 @@ const DB = {
 };
 
 // ==========================================
+// 🔔 СУЧАСНІ ТОСТ-СПОМІЩЕННЯ (TOAST SYSTEM)
+// ==========================================
+function showToast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  const icon = type === 'success' ? '✅' : type === 'error' ? '⚠️' : 'ℹ️';
+  toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+  
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateY(10px)';
+    toast.style.transition = 'all 0.3s ease';
+    setTimeout(() => toast.remove(), 300);
+  }, 3500);
+}
+
+// Перехоплення стандартного alert
+window.alert = function(msg) { showToast(msg, 'info'); };
+
+// ==========================================
 // 🐱 КЕРУВАННЯ ЛОАДЕРОМ (CAT LOADING OVERLAY)
 // ==========================================
 function showLoading() {
@@ -61,13 +86,10 @@ function startRandomWordsAnimation() {
     wordEl.style.fontSize = `${fontSize}px`;
 
     container.appendChild(wordEl);
-
     setTimeout(() => { wordEl.remove(); }, 5000);
   }
 
-  for (let i = 0; i < 6; i++) {
-    setTimeout(spawnWord, i * 400);
-  }
+  for (let i = 0; i < 6; i++) { setTimeout(spawnWord, i * 400); }
   splashInterval = setInterval(spawnWord, 700);
 }
 
@@ -81,12 +103,15 @@ function closeWelcomeSplash() {
 }
 
 // ==========================================
-// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ
+// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ (ЧЕРЕЗ POST)
 // ==========================================
 async function checkInitialConfig() {
   showLoading();
   try {
-    const res = await fetch(`${API_URL}?action=getInitialConfig`);
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "getInitialConfig" })
+    });
     const data = await res.json();
     isTeacherRegistered = data.isRegistered;
     updateAuthUIState();
@@ -126,20 +151,16 @@ async function handleAuthSubmit(e) {
       const result = await res.json();
 
       if (result.success) {
-        alert("Викладача зареєстровано! Увійдіть з вказаними даними.");
+        showToast("Викладача зареєстровано! Увійдіть з вказаними даними.", "success");
         isTeacherRegistered = true;
         updateAuthUIState();
       } else {
-        alert(result.error || "Помилка реєстрації");
+        showToast(result.error || "Помилка реєстрації", "error");
       }
       return;
     }
 
-    const loginData = {
-      role: currentLoginRole,
-      email,
-      pass
-    };
+    const loginData = { role: currentLoginRole, email, pass };
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -156,12 +177,13 @@ async function handleAuthSubmit(e) {
     if (result.success) {
       authToken = result.token;
       localStorage.setItem("edu_crm_token", authToken);
+      showToast("Вхід успішний!", "success");
       await loadProtectedData();
     } else {
-      alert(result.error || "Помилка входу: перевірте логін та пароль");
+      showToast(result.error || "Помилка входу: перевірте логін та пароль", "error");
     }
   } catch (err) {
-    alert("Помилка з'єднання з сервером Google. Перевірте посилання API_URL.");
+    showToast("Помилка з'єднання з сервером Google.", "error");
     console.error("Помилка входу:", err);
   } finally {
     hideLoading();
@@ -177,16 +199,11 @@ async function handleFirstLoginPasswordSubmit(e) {
 
   if (newPass !== confirmPass) {
     hideLoading();
-    alert("Паролі не збігаються!");
+    showToast("Паролі не збігаються!", "error");
     return;
   }
 
-  const loginData = {
-    role: "student",
-    email: pendingStudentEmail,
-    isFirstLogin: true,
-    newPass
-  };
+  const loginData = { role: "student", email: pendingStudentEmail, isFirstLogin: true, newPass };
 
   try {
     const res = await fetch(API_URL, {
@@ -199,9 +216,10 @@ async function handleFirstLoginPasswordSubmit(e) {
       closeModal('firstLoginModal');
       authToken = result.token;
       localStorage.setItem("edu_crm_token", authToken);
+      showToast("Пароль збережено!", "success");
       await loadProtectedData();
     } else {
-      alert(result.error || "Помилка збереження пароля");
+      showToast(result.error || "Помилка збереження пароля", "error");
     }
   } catch (err) {
     console.error("Помилка першого входу:", err);
@@ -212,7 +230,10 @@ async function handleFirstLoginPasswordSubmit(e) {
 
 async function loadProtectedData() {
   try {
-    const res = await fetch(`${API_URL}?action=getData&token=${authToken}`);
+    const res = await fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "getData", token: authToken })
+    });
     const data = await res.json();
 
     if (data.error) {
@@ -370,7 +391,7 @@ function renderStudentProfile() {
   document.getElementById('stPhone').innerText = st.phone || '-';
   document.getElementById('stEmail').innerText = st.email;
   document.getElementById('stTg').innerText = st.tg || '-';
-  document.getElementById('stLevel').innerText = `Рівень: ${st.level}`;
+  document.getElementById('stLevel').innerText = `Рівень: ${st.level || '-'}`;
   document.getElementById('stNotes').innerText = st.notes || '-';
 
   const stLessons = DB.lessons[st.id] || [];
@@ -382,7 +403,7 @@ function renderStudentProfile() {
 }
 
 // ==========================================
-// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ (ЗАВЕРШЕННЯ, РЕДАКТУВАННЯ, ВИДАЛЕННЯ)
+// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ
 // ==========================================
 function completeLesson(id) {
   const stId = DB.selectedStudentId;
@@ -391,6 +412,7 @@ function completeLesson(id) {
   if (l) { 
     l.status = 'done'; 
     syncData("saveLessons", DB.lessons);
+    showToast("Урок завершено та списано з балансу", "success");
     renderApp(); 
   }
 }
@@ -398,9 +420,10 @@ function completeLesson(id) {
 function cancelLesson(id) {
   const stId = DB.selectedStudentId;
   if (!stId || !DB.lessons[stId]) return;
-  if (confirm("Ви дійсно бажаєте скасувати цей урок та видалити його з розкладу? Баланс учня НЕ зміниться.")) {
+  if (confirm("Ви дійсно бажаєте скасувати цей урок? Баланс учня НЕ зміниться.")) {
     DB.lessons[stId] = DB.lessons[stId].filter(item => item.id !== id);
     syncData("saveLessons", DB.lessons);
+    showToast("Урок видалено з розкладу", "info");
     renderApp();
   }
 }
@@ -438,6 +461,7 @@ function handleEditLessonSubmit(e) {
     lesson.link = document.getElementById('editLessonLink').value;
 
     syncData("saveLessons", DB.lessons);
+    showToast("Урок оновлено!", "success");
     renderApp();
   }
   closeModal('editLessonModal');
@@ -473,6 +497,7 @@ function handleExtendDeadlineSubmit(e) {
   if (lesson) {
     lesson.deadline = document.getElementById('newDeadlineInput').value;
     syncData("saveLessons", DB.lessons);
+    showToast("Дедлайн оновлено!", "success");
     renderApp();
   }
   closeModal('extendDeadlineModal');
@@ -500,13 +525,14 @@ function handleStudentHwSubmit(e) {
     lesson.studentHwComment = document.getElementById('hwSubmissionComment').value;
     lesson.status = 'done';
     syncData("saveLessons", DB.lessons);
+    showToast("Домашнє завдання надіслано!", "success");
     renderApp();
   }
   closeModal('submitHwModal');
 }
 
 function alertOverdue() {
-  alert("Термін здачі минув. Зверніться до викладача.");
+  showToast("Термін здачі минув. Зверніться до викладача.", "error");
 }
 
 function handleAddStudent(e) {
@@ -535,6 +561,7 @@ function handleAddStudent(e) {
   syncData("saveLessons", DB.lessons);
   syncData("saveTests", DB.tests);
 
+  showToast("Учня успішно додано!", "success");
   renderApp();
   closeModal('addStudentModal');
   e.target.reset();
@@ -560,8 +587,8 @@ function renderLessons() {
   const alertBox = document.getElementById('overdueAlertBox');
 
   if (!stId || !DB.lessons[stId] || DB.lessons[stId].length === 0) {
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Заняття відсутні</td></tr>`;
-    alertBox.classList.add('hidden');
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:var(--text-muted); padding:24px;">Заняття відсутні</td></tr>`;
+    if (alertBox) alertBox.classList.add('hidden');
     return;
   }
 
@@ -586,7 +613,7 @@ function renderLessons() {
     let studentHwContent = '<span style="color:var(--text-muted); font-size:12px;">Не надіслано</span>';
     if (l.studentHwLink) {
       studentHwContent = `
-        <div><a href="${l.studentHwLink}" target="_blank" style="color:var(--primary); font-weight:600;">📎 Відповідь учня</a></div>
+        <div><a href="${l.studentHwLink}" target="_blank" style="color:var(--primary); font-weight:600;">📎 Відповідь</a></div>
         ${l.studentHwComment ? `<div style="font-size:11px; color:var(--text-muted);">💬 ${l.studentHwComment}</div>` : ''}
       `;
     }
@@ -594,7 +621,7 @@ function renderLessons() {
     let paymentBadge = currentUserRole === 'teacher'
       ? (l.isPaid === 'paid' 
         ? `<button class="btn btn-sm btn-secondary" onclick="toggleLessonPayment(${l.id})" style="border-color:var(--success); color:var(--success);">💳 Оплачено</button>` 
-        : `<button class="btn btn-sm btn-secondary" onclick="toggleLessonPayment(${l.id})" style="border-color:var(--danger); color:var(--danger);">💳 Не оплачено</button>`)
+        : `<button class="btn btn-sm btn-secondary" onclick="toggleLessonPayment(${l.id})" style="border-color:var(--danger); color:var(--danger);">💳 Борг</button>`)
       : (l.isPaid === 'paid' ? `<span class="badge badge-paid">Оплачено</span>` : `<span class="badge badge-unpaid">Не оплачено</span>`);
 
     let actionBtn = '';
@@ -605,14 +632,14 @@ function renderLessons() {
     } else {
       if (l.status === 'planned') {
         actionBtn = `<div style="display:flex; gap:4px; flex-wrap:wrap;">
-          <button class="btn btn-sm" onclick="completeLesson(${l.id})" title="Завершити та списати 1 урок">✓ Завершити</button>
-          <button class="btn btn-sm btn-secondary" onclick="openEditLessonModal(${l.id})" title="Редагувати / Перенести">✏️ Перенести</button>
-          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити з розкладу без списання">🗑️ Скасувати</button>
+          <button class="btn btn-sm" onclick="completeLesson(${l.id})" title="Завершити урок">✓</button>
+          <button class="btn btn-sm btn-secondary" onclick="openEditLessonModal(${l.id})" title="Редагувати">✏️</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити">🗑️</button>
         </div>`;
       } else {
         actionBtn = `<div style="display:flex; gap:4px; align-items:center;">
           <span style="font-size:12px; color:var(--success);">✓ Проведено</span>
-          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити запис">🗑️</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})">🗑️</button>
         </div>`;
       }
     }
@@ -624,7 +651,7 @@ function renderLessons() {
 
     tr.innerHTML = `
       <td><strong>${dt}</strong></td>
-      <td>${l.topic}</td>
+      <td><strong>${l.topic}</strong></td>
       <td>${paymentBadge}</td>
       <td>
         ${l.hw ? `<div>📘 ${l.hw}</div>` : ''}
@@ -638,10 +665,15 @@ function renderLessons() {
     tbody.appendChild(tr);
   });
 
-  if (hasOverdue) alertBox.classList.remove('hidden');
-  else alertBox.classList.add('hidden');
+  if (alertBox) {
+    if (hasOverdue) alertBox.classList.remove('hidden');
+    else alertBox.classList.add('hidden');
+  }
 }
 
+// ==========================================
+// 📋 КЕРУВАННЯ ТЕСТАМИ ТА КОНСТРУКТОР
+// ==========================================
 function renderTests() {
   const stId = DB.selectedStudentId;
   const tbody = document.getElementById('testsTableBody');
@@ -649,7 +681,7 @@ function renderTests() {
   const now = new Date();
 
   if (!stId || !DB.tests[stId] || DB.tests[stId].length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Призначених контрольних робіт немає</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding:24px;">Призначених контрольних робіт немає</td></tr>`;
     return;
   }
 
@@ -674,12 +706,275 @@ function renderTests() {
       <td><strong>${t.title}</strong></td>
       <td>${dt}</td>
       <td style="color:${isExpired?'var(--danger)':'inherit'};">${dl}</td>
-      <td>${t.questions.length} питань</td>
+      <td>${t.questions ? t.questions.length : 0} питань</td>
       <td>${resText}</td>
       <td>${actionBtn}</td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+function addQuestionField() {
+  const container = document.getElementById('questionsContainer');
+  const qId = Date.now();
+  const qDiv = document.createElement('div');
+  qDiv.className = 'q-builder-item';
+  qDiv.id = `q_item_${qId}`;
+
+  qDiv.innerHTML = `
+    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+      <strong>Питання:</strong>
+      <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('q_item_${qId}').remove()">Видалити</button>
+    </div>
+    <div class="form-group"><input type="text" class="q-title" placeholder="Текст питання..." required></div>
+    <div class="opt-grid-builder">
+      <div class="opt-builder-box">
+        <label>Варіант 1:</label>
+        <input type="text" class="opt-text" required>
+        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
+        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="0" checked> Правильний</label>
+      </div>
+      <div class="opt-builder-box">
+        <label>Варіант 2:</label>
+        <input type="text" class="opt-text" required>
+        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
+        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="1"> Правильний</label>
+      </div>
+      <div class="opt-builder-box">
+        <label>Варіант 3:</label>
+        <input type="text" class="opt-text">
+        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
+        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="2"> Правильний</label>
+      </div>
+      <div class="opt-builder-box">
+        <label>Варіант 4:</label>
+        <input type="text" class="opt-text">
+        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
+        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="3"> Правильний</label>
+      </div>
+    </div>
+  `;
+  container.appendChild(qDiv);
+}
+
+function handleCreateTestSubmit(e) {
+  if (e) e.preventDefault();
+  const stId = DB.selectedStudentId;
+  if (!stId) { showToast("Оберіть учня!", "error"); return; }
+
+  const qItems = document.querySelectorAll('.q-builder-item');
+  if (qItems.length === 0) { showToast("Додайте хоча б одне питання!", "error"); return; }
+
+  const questions = [];
+  qItems.forEach(item => {
+    const title = item.querySelector('.q-title').value;
+    const optTexts = item.querySelectorAll('.opt-text');
+    const optImgs = item.querySelectorAll('.opt-img');
+    const radios = item.querySelectorAll('input[type="radio"]');
+
+    let correctIdx = 0;
+    radios.forEach((r, idx) => { if (r.checked) correctIdx = idx; });
+
+    const options = [];
+    optTexts.forEach((t, i) => {
+      if (t.value.trim() !== "") {
+        options.push({ text: t.value.trim(), img: optImgs[i].value.trim() || null });
+      }
+    });
+
+    questions.push({ title, options, correctIdx });
+  });
+
+  if (!DB.tests[stId]) DB.tests[stId] = [];
+
+  DB.tests[stId].push({
+    id: Date.now(),
+    title: document.getElementById('testTitleInput').value,
+    date: document.getElementById('testDateInput').value,
+    deadline: document.getElementById('testDeadlineInput').value,
+    questions,
+    status: 'planned'
+  });
+
+  syncData("saveTests", DB.tests);
+  showToast("Тест створено та призначено учню!", "success");
+  renderApp();
+  closeModal('createTestModal');
+}
+
+function openZoomModal(imgSrc) {
+  const display = document.getElementById('zoomedImageDisplay');
+  if (display) display.src = imgSrc;
+  openModal('imageZoomModal');
+}
+
+function openTakeTestModal(testId) {
+  const stId = DB.selectedStudentId;
+  const test = DB.tests[stId].find(t => t.id === testId);
+  if (!test) return;
+
+  document.getElementById('takeTestId').value = test.id;
+  document.getElementById('takeTestTitle').innerText = test.title;
+
+  const container = document.getElementById('takeTestQuestionsContainer');
+  container.innerHTML = '';
+
+  test.questions.forEach((q, qIdx) => {
+    const qBox = document.createElement('div');
+    qBox.className = 'q-builder-item';
+    qBox.style.borderStyle = 'solid';
+
+    let optionsHtml = '';
+    const hasImages = q.options.some(opt => opt.img);
+
+    if (hasImages) {
+      optionsHtml = `<div class="image-tile-grid">`;
+      q.options.forEach((opt, oIdx) => {
+        optionsHtml += `
+          <div class="image-tile-option" onclick="selectTileOption(this, 'q_${qIdx}')">
+            <input type="radio" name="q_${qIdx}" value="${oIdx}" required style="display:none;">
+            ${opt.img ? `
+              <div class="img-tile-wrapper">
+                <button type="button" class="zoom-btn-overlay" onclick="event.stopPropagation(); openZoomModal('${opt.img}')">🔍</button>
+                <img src="${opt.img}" class="option-img-preview" alt="Option">
+              </div>
+            ` : ''}
+            <span>${opt.text}</span>
+          </div>
+        `;
+      });
+      optionsHtml += `</div>`;
+    } else {
+      q.options.forEach((opt, oIdx) => {
+        optionsHtml += `
+          <div style="margin-bottom:6px;">
+            <label style="cursor:pointer;"><input type="radio" name="q_${qIdx}" value="${oIdx}" required> ${opt.text}</label>
+          </div>
+        `;
+      });
+    }
+
+    qBox.innerHTML = `<h4 style="margin-bottom:10px;">${qIdx + 1}. ${q.title}</h4>${optionsHtml}`;
+    container.appendChild(qBox);
+  });
+
+  updateTestProgress(test.questions.length);
+  openModal('takeTestModal');
+}
+
+function selectTileOption(el, groupName) {
+  const parent = el.closest('.image-tile-grid');
+  parent.querySelectorAll('.image-tile-option').forEach(opt => opt.classList.remove('selected'));
+  el.classList.add('selected');
+  const radio = el.querySelector('input[type="radio"]');
+  if (radio) radio.checked = true;
+  updateTestProgress();
+}
+
+function updateTestProgress(totalCount) {
+  const container = document.getElementById('takeTestQuestionsContainer');
+  const total = totalCount || container.querySelectorAll('.q-builder-item').length;
+  let answered = 0;
+
+  for (let i = 0; i < total; i++) {
+    const checked = container.querySelector(`input[name="q_${i}"]:checked`);
+    if (checked) answered++;
+  }
+
+  const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
+  document.getElementById('testProgressText').innerText = `${answered} з ${total} дано відповідей`;
+  document.getElementById('testProgressBarFill').style.width = `${percent}%`;
+}
+
+function handleStudentTestSubmit(e) {
+  if (e) e.preventDefault();
+  const testId = Number(document.getElementById('takeTestId').value);
+  const stId = DB.selectedStudentId;
+  const test = DB.tests[stId].find(t => t.id === testId);
+  if (!test) return;
+
+  let correctCount = 0;
+  const userAnswers = [];
+
+  test.questions.forEach((q, qIdx) => {
+    const selected = document.querySelector(`input[name="q_${qIdx}"]:checked`);
+    const val = selected ? Number(selected.value) : -1;
+    userAnswers.push(val);
+    if (val === q.correctIdx) correctCount++;
+  });
+
+  const total = test.questions.length;
+  const percentage = Math.round((correctCount / total) * 100);
+  const grade = Math.max(1, Math.round((percentage / 100) * 12));
+
+  test.status = 'submitted';
+  test.userAnswers = userAnswers;
+  test.grade = grade;
+  test.percentage = percentage;
+
+  syncData("saveTests", DB.tests);
+  showToast(`Тест складено! Результат: ${grade} / 12 балів`, "success");
+  renderApp();
+  closeModal('takeTestModal');
+}
+
+function openReviewTestModal(testId) {
+  const stId = DB.selectedStudentId;
+  const test = DB.tests[stId].find(t => t.id === testId);
+  if (!test) return;
+
+  document.getElementById('reviewTestTitle').innerText = `Деталі: ${test.title}`;
+  const details = document.getElementById('reviewTestDetails');
+  details.innerHTML = `
+    <div style="margin-bottom:16px; font-size:14px;">
+      <strong>Оцінка:</strong> <span style="color:var(--primary); font-size:18px;">${test.grade || 0} / 12</span> (${test.percentage || 0}%)
+    </div>
+  `;
+
+  test.questions.forEach((q, idx) => {
+    const userAns = test.userAnswers ? test.userAnswers[idx] : -1;
+    const isCorrect = userAns === q.correctIdx;
+    
+    details.innerHTML += `
+      <div style="padding:10px; border-radius:8px; background:rgba(0,0,0,0.15); margin-bottom:8px; border:1px solid ${isCorrect?'var(--success)':'var(--danger)'}">
+        <div><strong>Питання ${idx+1}:</strong> ${q.title}</div>
+        <div style="font-size:12px; margin-top:4px;">
+          Ваша відповідь: <strong>${q.options[userAns] ? q.options[userAns].text : 'Немає'}</strong> ${isCorrect ? '✅' : '❌'}<br>
+          Правильна відповідь: <strong style="color:var(--success);">${q.options[q.correctIdx].text}</strong>
+        </div>
+      </div>
+    `;
+  });
+
+  openModal('reviewTestModal');
+}
+
+function handleTeacherPassChange(e) {
+  if (e) e.preventDefault();
+  const oldPass = document.getElementById('oldTeacherPassInput').value;
+  const newPass = document.getElementById('newTeacherPassInput').value;
+
+  syncData("changeTeacherPassword", { oldPass, newPass });
+  showToast("Пароль викладача оновлено!", "success");
+  closeModal('editTeacherPassModal');
+}
+
+function handleEditTeacher(e) {
+  if (e) e.preventDefault();
+  if (!DB.config) DB.config = {};
+  
+  DB.config.teacherProfile = {
+    name: document.getElementById('editTName').value,
+    phone: document.getElementById('editTPhone').value,
+    email: document.getElementById('editTEmail').value,
+    tg: document.getElementById('editTTg').value,
+    zoom: document.getElementById('editTZoom').value
+  };
+
+  syncData("saveConfig", DB.config);
+  showToast("Дані викладача збережено!", "success");
+  renderApp();
+  closeModal('editTeacherModal');
 }
 
 function renderPayments() {
@@ -714,19 +1009,20 @@ function renderCalendar() {
   const stId = DB.selectedStudentId;
 
   ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(d => {
-    container.innerHTML += `<div style="font-weight:bold; font-size:12px; color:var(--text-muted);">${d}</div>`;
+    container.innerHTML += `<div style="font-weight:bold; font-size:12px; color:var(--text-muted); padding-bottom:6px;">${d}</div>`;
   });
 
   if(!stId || !DB.lessons[stId]) return;
 
   for(let i=1; i<=31; i++) {
     const dayCell = document.createElement('div');
-    dayCell.style.cssText = "padding:8px; border:1px solid var(--border); border-radius:6px; font-size:11px; min-height:45px;";
+    dayCell.style.cssText = "padding:8px; border:1px solid var(--border); border-radius:10px; font-size:11px; min-height:48px; background: rgba(0,0,0,0.15);";
     const hasLesson = DB.lessons[stId].find(l => new Date(l.date).getDate() === i);
     
     if(hasLesson) {
-      dayCell.style.background = hasLesson.status === 'done' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)';
-      dayCell.innerHTML = `<strong>${i}</strong><br><span>${hasLesson.status==='done'?'✓':'⏳'}</span>`;
+      dayCell.style.background = hasLesson.status === 'done' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.2)';
+      dayCell.style.borderColor = hasLesson.status === 'done' ? 'var(--success)' : 'var(--primary)';
+      dayCell.innerHTML = `<strong>${i}</strong><br><span style="font-size:10px;">${hasLesson.topic}</span>`;
     } else {
       dayCell.innerHTML = `<span style="color:var(--text-muted);">${i}</span>`;
     }
@@ -737,7 +1033,7 @@ function renderCalendar() {
 function handleAddLesson(e) {
   if (e) e.preventDefault();
   const stId = DB.selectedStudentId;
-  if (!stId) { alert("Спочатку оберіть учня!"); return; }
+  if (!stId) { showToast("Спочатку оберіть учня!", "error"); return; }
 
   if (!DB.lessons[stId]) DB.lessons[stId] = [];
 
@@ -755,6 +1051,7 @@ function handleAddLesson(e) {
   });
 
   syncData("saveLessons", DB.lessons);
+  showToast("Урок заплановано!", "success");
   renderApp();
   e.target.reset();
 }
@@ -782,6 +1079,7 @@ function handleAddPayment(e) {
     type: "Поповнення балансу", periodFrom, periodTo, count, amount
   });
 
+  showToast("Баланс успішно зараховано!", "success");
   renderApp();
   closeModal('addPaymentModal');
 }
@@ -794,11 +1092,13 @@ function handleEditStudentSubmit(e) {
   st.name = document.getElementById('editStName').value;
   st.phone = document.getElementById('editStPhone').value;
   st.email = document.getElementById('editStEmail').value;
+  st.pass = document.getElementById('editStPass').value;
   st.tg = document.getElementById('editStTg').value;
   st.level = document.getElementById('editStLevel').value;
   st.notes = document.getElementById('editStNotes').value;
 
   syncData("saveStudents", DB.students);
+  showToast("Дані учня оновлено!", "success");
   renderApp();
   closeModal('editStudentModal');
 }
@@ -818,6 +1118,7 @@ function handleDeleteStudent() {
 
     const remainingIds = Object.keys(DB.students);
     DB.selectedStudentId = remainingIds.length > 0 ? remainingIds[0] : null;
+    showToast("Учня видалено з системи", "info");
     renderApp();
   }
 }
@@ -828,22 +1129,30 @@ function openEditStudentModal() {
   document.getElementById('editStName').value = st.name;
   document.getElementById('editStPhone').value = st.phone || '';
   document.getElementById('editStEmail').value = st.email;
+  document.getElementById('editStPass').value = st.pass || '';
   document.getElementById('editStTg').value = st.tg || '';
-  document.getElementById('editStLevel').value = st.level;
+  document.getElementById('editStLevel').value = st.level || '';
   document.getElementById('editStNotes').value = st.notes || '';
   openModal('editStudentModal');
 }
 
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
 function switchTab(tabId, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  ['progressTab', 'testsTab', 'calendarTab', 'paymentsTab'].forEach(id => document.getElementById(id).classList.add('hidden'));
-  document.getElementById(tabId).classList.remove('hidden');
+  if (btn) btn.classList.add('active');
+  ['progressTab', 'testsTab', 'calendarTab', 'paymentsTab'].forEach(id => {
+    const tab = document.getElementById(id);
+    if (tab) tab.classList.add('hidden');
+  });
+  const target = document.getElementById(tabId);
+  if (target) target.classList.remove('hidden');
 }
+
 function toggleTheme() {
-  document.body.setAttribute('data-theme', document.body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  const current = document.body.getAttribute('data-theme');
+  document.body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
 }
 
 window.onload = function() {
