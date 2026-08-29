@@ -972,36 +972,73 @@ function renderPayments() {
 }
 
 // ==========================================
-// 📅 КАЛЕНДАР РОЗКЛАДУ
+// 📅 ПРАВИЛЬНИЙ КАЛЕНДАР РОЗКЛАДУ
 // ==========================================
 function renderCalendar() {
   const container = document.getElementById('calendarGrid');
-  if(!container) return;
+  if (!container) return;
   container.innerHTML = '';
   const stId = DB.selectedStudentId;
 
-  ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(d => {
+  // Шапка днів тижня
+  ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].forEach(d => {
     container.innerHTML += `<div class="calendar-day-header">${d}</div>`;
   });
 
-  if(!stId || !DB.lessons[stId]) return;
+  // Беремо поточний рік та місяць (або поточну дату системи)
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0 - Січень, 7 - Серпень тощо
 
-  for(let i=1; i<=31; i++) {
+  // Визначаємо перший день місяця (0 - Неділя, 1 - Понеділок і т.д.)
+  const firstDayIndex = new Date(year, month, 1).getDay();
+  // Переводимо у європейський формат (Пн = 0, Нд = 6)
+  const startingDay = (firstDayIndex === 0) ? 6 : firstDayIndex - 1;
+
+  // Визначаємо загальну кількість днів у поточному місяці
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  // Додаємо порожні клітинки для днів попереднього місяця на початку сітки
+  for (let i = 0; i < startingDay; i++) {
+    const emptyCell = document.createElement('div');
+    emptyCell.className = 'calendar-day-cell';
+    emptyCell.style.opacity = '0.3';
+    container.appendChild(emptyCell);
+  }
+
+  // Заповнюємо дні поточного місяця
+  for (let i = 1; i <= totalDays; i++) {
     const dayCell = document.createElement('div');
     dayCell.className = 'calendar-day-cell';
     
-    const hasLesson = DB.lessons[stId].find(l => new Date(l.date).getDate() === i);
-    
-    if(hasLesson) {
+    // Перевіряємо, чи є урок у цей день
+    let hasLesson = null;
+    if (stId && DB.lessons[stId]) {
+      hasLesson = DB.lessons[stId].find(l => {
+        const lDate = new Date(l.date);
+        return lDate.getDate() === i && lDate.getMonth() === month && lDate.getFullYear() === year;
+      });
+    }
+
+    // Підсвітка сьогоднішнього дня
+    const isToday = i === now.getDate();
+    if (isToday) {
+      dayCell.style.borderWidth = '2px';
+      dayCell.style.borderColor = 'var(--primary)';
+    }
+
+    if (hasLesson) {
       const isDone = hasLesson.status === 'done';
       dayCell.style.background = isDone ? 'var(--success-bg)' : 'var(--primary-glow)';
+      dayCell.style.borderColor = isDone ? 'var(--success)' : 'var(--primary)';
       dayCell.innerHTML = `
-        <strong style="color:${isDone?'var(--success)':'var(--primary)'};">${i}</strong>
-        <span style="font-size:10px; font-weight:600;">${hasLesson.topic}</span>
+        <strong style="color:${isDone ? 'var(--success)' : 'var(--primary)'};">${i}</strong>
+        <span style="font-size:10px; font-weight:700; line-height:1.2;">${hasLesson.topic}</span>
       `;
     } else {
-      dayCell.innerHTML = `<span style="color:var(--text-light);">${i}</span>`;
+      dayCell.innerHTML = `<span style="color:var(--text); font-weight:600;">${i}</span>`;
     }
+    
     container.appendChild(dayCell);
   }
 }
