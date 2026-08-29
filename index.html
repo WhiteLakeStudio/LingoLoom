@@ -532,6 +532,46 @@
       <p class="cat-loading-text">Завантаження...</p>
     </div>
   </div>
+  <!-- EDIT LESSON MODAL -->
+  <div id="editLessonModal" class="modal-overlay hidden">
+    <div class="modal">
+      <div class="card-header">
+        <span class="card-title">Редагувати / Перенести урок</span>
+        <button class="btn btn-secondary btn-sm" onclick="closeModal('editLessonModal')">✕</button>
+      </div>
+      <form onsubmit="handleEditLessonSubmit(event)">
+        <input type="hidden" id="editLessonId">
+        <div class="form-group">
+          <label>Дата та час уроку:</label>
+          <input type="datetime-local" id="editLessonDate" required>
+        </div>
+        <div class="form-group">
+          <label>Тема уроку:</label>
+          <input type="text" id="editLessonTopic" required>
+        </div>
+        <div class="form-group">
+          <label>Статус оплати:</label>
+          <select id="editLessonIsPaid">
+            <option value="paid">Оплачено</option>
+            <option value="unpaid">Не оплачено</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Домашнє завдання:</label>
+          <input type="text" id="editLessonHW">
+        </div>
+        <div class="form-group">
+          <label>Дедлайн ДЗ:</label>
+          <input type="datetime-local" id="editLessonDeadline" required>
+        </div>
+        <div class="form-group">
+          <label>Посилання на матеріали Drive:</label>
+          <input type="text" id="editLessonLink">
+        </div>
+        <button type="submit" class="btn" style="width:100%;">Зберегти зміни</button>
+      </form>
+    </div>
+  </div>
   
 </body>
 </html>
