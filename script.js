@@ -40,7 +40,7 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
-// Перехоплення стандартного alert
+// Перехоплення alert
 window.alert = function(msg) { showToast(msg, 'info'); };
 
 // ==========================================
@@ -103,15 +103,12 @@ function closeWelcomeSplash() {
 }
 
 // ==========================================
-// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ (ЧЕРЕЗ POST)
+// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ (ОРИГІНАЛЬНІ GET-МЕТОДИ)
 // ==========================================
 async function checkInitialConfig() {
   showLoading();
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "getInitialConfig" })
-    });
+    const res = await fetch(`${API_URL}?action=getInitialConfig`);
     const data = await res.json();
     isTeacherRegistered = data.isRegistered;
     updateAuthUIState();
@@ -230,10 +227,7 @@ async function handleFirstLoginPasswordSubmit(e) {
 
 async function loadProtectedData() {
   try {
-    const res = await fetch(API_URL, {
-      method: "POST",
-      body: JSON.stringify({ action: "getData", token: authToken })
-    });
+    const res = await fetch(`${API_URL}?action=getData&token=${authToken}`);
     const data = await res.json();
 
     if (data.error) {
