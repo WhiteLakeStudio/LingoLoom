@@ -3,11 +3,6 @@
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3cmIseRSycC_IIThjBPF0FXgv16hl8v9_AzNwIsc3Ja1Pe/exec";
 
-// ==========================================
-// 📌 КОНФІГУРАЦІЯ API (URL з вашого GAS)
-// ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3cmIseRSycC_IIThjBPF0FXgv16hl8v9_AzNwIsc3Ja1Pe/exec";
-
 let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
 let currentLoginRole = 'teacher';
