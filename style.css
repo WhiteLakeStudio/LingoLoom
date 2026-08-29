@@ -700,3 +700,63 @@ select {
     justify-content: flex-end;
   }
 }
+
+/* ==========================================
+   💳 MOBILE LABELS FOR PAYMENTS TABLE
+   ========================================== */
+@media (max-width: 768px) {
+  /* Якщо це таблиця платежів — ставимо правильні підписи */
+  .payments-table td:nth-child(1)::before { content: "📅 Дата:" !important; }
+  .payments-table td:nth-child(2)::before { content: "🏷️ Тип:" !important; }
+  .payments-table td:nth-child(3)::before { content: "📆 Період:" !important; }
+  .payments-table td:nth-child(4)::before { content: "📦 Кількість:" !important; }
+  .payments-table td:nth-child(5)::before { content: "💰 Сума / Статус:" !important; }
+}
+
+/* ==========================================
+   📅 CALENDAR FIX: STRICT GRID & NO BREAKING
+   ========================================== */
+.calendar-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 3px !important;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.calendar-day-cell {
+  padding: 4px !important;
+  border: 1px solid var(--border);
+  font-size: 11px;
+  min-height: 60px !important;
+  max-height: 60px !important; /* Фіксуємо висоту, щоб сітка не пливла */
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  overflow: hidden !important; /* Ховаємо все що не влізає */
+}
+
+.calendar-day-cell span, 
+.calendar-day-cell div {
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* Обмежуємо назву теми максимум 3 рядками */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  .calendar-day-cell {
+    min-height: 50px !important;
+    max-height: 50px !important;
+    padding: 2px !important;
+    font-size: 10px !important;
+  }
+  .calendar-day-cell span {
+    font-size: 8px !important;
+    -webkit-line-clamp: 2; /* На телефонах показуємо до 2 рядків теми */
+  }
+}
