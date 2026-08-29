@@ -113,8 +113,18 @@
 
       <div id="teacherAdminBox" class="sidebar-card">
         <label style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Учень:</label>
-        <div class="form-group" style="margin-top:6px; margin-bottom:0;">
-          <select id="teacherStudentSelect" onchange="selectStudent(this.value)"></select>
+        <div class="custom-select-wrapper" style="margin-top:6px;">
+          <!-- Прихований стандартний select для сумісності з формами -->
+          <select id="teacherStudentSelect" class="hidden" onchange="selectStudent(this.value)"></select>
+
+          <!-- Кастомний стилізований випадаючий список -->
+          <div class="custom-select" id="customStudentSelect">
+            <div class="custom-select-trigger" onclick="toggleCustomDropdown()">
+              <span id="customSelectLabel">Оберіть учня...</span>
+              <span class="custom-select-arrow">❯</span>
+            </div>
+            <div class="custom-select-options" id="customSelectOptions"></div>
+          </div>
         </div>
         <button class="btn btn-sm btn-secondary" style="width:100%; margin-top:10px;" onclick="openModal('addStudentModal')">+ Додати учня</button>
       </div>
