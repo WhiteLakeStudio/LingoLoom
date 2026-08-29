@@ -3,6 +3,11 @@
 // ==========================================
 const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3cmIseRSycC_IIThjBPF0FXgv16hl8v9_AzNwIsc3Ja1Pe/exec";
 
+// ==========================================
+// 📌 КОНФІГУРАЦІЯ API (URL з вашого GAS)
+// ==========================================
+const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3cmIseRSycC_IIThjBPF0FXgv16hl8v9_AzNwIsc3Ja1Pe/exec";
+
 let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
 let currentLoginRole = 'teacher';
@@ -69,7 +74,7 @@ let splashInterval = null;
 function startRandomWordsAnimation() {
   const container = document.getElementById('splashBgCanvas');
   if (!container) return;
-  container.innerHTML = ''; // Очищуємо перед стартом
+  container.innerHTML = ''; 
 
   function spawnWord() {
     const wordText = WELCOME_WORDS[Math.floor(Math.random() * WELCOME_WORDS.length)];
@@ -665,6 +670,7 @@ function setLoginRole(role) {
 function renderLessons() {
   const stId = DB.selectedStudentId;
   const tbody = document.getElementById('lessonsTableBody');
+  if(!tbody) return;
   tbody.innerHTML = '';
   const alertBox = document.getElementById('overdueAlertBox');
 
@@ -727,7 +733,7 @@ function renderLessons() {
     }
 
     let statusBadge = l.status === 'done' ? `<span class="badge badge-paid">Проведено</span>`
-      : isExpired ? `<span class="badge badge-overdue">Прострочено</span>`
+      : isExpired ? `<span class="badge">Прострочено</span>`
       : l.studentHwLink ? `<span class="badge badge-submitted">ДЗ здано</span>`
       : `<span class="badge badge-planned">Заплановано</span>`;
 
@@ -772,6 +778,7 @@ function renderLessons() {
 function renderTests() {
   const stId = DB.selectedStudentId;
   const tbody = document.getElementById('testsTableBody');
+  if(!tbody) return;
   tbody.innerHTML = '';
   const now = new Date();
 
@@ -811,6 +818,7 @@ function renderTests() {
 
 function addQuestionField() {
   const container = document.getElementById('questionsContainer');
+  if(!container) return;
   const qId = Date.now();
   const qDiv = document.createElement('div');
   qDiv.className = 'q-builder-item';
@@ -924,17 +932,45 @@ function handleEditTeacher(e) {
   closeModal('editTeacherModal');
 }
 
+// ==========================================
+// 💳 ВИВІД ОПЛАТ ТА ТРАНЗАКЦІЙ (ПОВНИЙ ФІКС)
+// ==========================================
 function renderPayments() {
   const stId = DB.selectedStudentId;
   const tbody = document.getElementById('paymentsTableBody');
+  if(!tbody) return;
   tbody.innerHTML = '';
+  
   if(!stId || (!DB.students[stId] && !DB.studentProfile)) return;
 
   const st = (currentUserRole === 'student') ? DB.studentProfile : DB.students[stId];
   if (st && st.payments) {
     st.payments.forEach(p => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td>${p.date}</td><td>Поповнення</td><td>+${p.count} занять</td><td><strong>${p.amount} грн</strong></td>`;
+      const periodStr = (p.periodFrom && p.periodTo) ? `${p.periodFrom} — ${p.periodTo}` : 'Поповнення балансу';
+      tr.innerHTML = `
+        <td>${p.date || '-'}</td>
+        <td>Поповнення</td>
+        <td>${periodStr}</td>
+        <td>+${p.count || 0} занять</td>
+        <td><strong style="color:var(--success);">${p.amount || 0} грн</strong></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  if (DB.lessons[stId]) {
+    DB.lessons[stId].forEach(l => {
+      const tr = document.createElement('tr');
+      const dt = l.date ? new Date(l.date).toLocaleDateString('uk-UA') : '-';
+      const payStatus = l.isPaid === 'paid' ? '<span class="badge badge-paid">Оплачено</span>' : '<span class="badge badge-unpaid">Борг</span>';
+      tr.innerHTML = `
+        <td>${dt}</td>
+        <td>Урок: ${l.topic || '-'}</td>
+        <td>Розклад заняття</td>
+        <td>1 урок</td>
+        <td>${payStatus}</td>
+      `;
       tbody.appendChild(tr);
     });
   }
@@ -945,6 +981,7 @@ function renderPayments() {
 // ==========================================
 function renderCalendar() {
   const container = document.getElementById('calendarGrid');
+  if(!container) return;
   container.innerHTML = '';
   const stId = DB.selectedStudentId;
 
