@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LingoLoom - Навчальний Кабінет</title>
+  <title>LingoLoom — Навчальний Кабінет</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -24,6 +24,9 @@
       © Всі права захищені WhiteLakeViz
     </div>
   </div>
+
+  <!-- CONTAINER FOR TOAST NOTIFICATIONS -->
+  <div id="toastContainer" class="toast-container"></div>
 
   <!-- LOGIN & REGISTRATION SCREEN -->
   <div id="loginScreen" class="login-overlay">
@@ -523,16 +526,6 @@
     </div>
   </div>
 
-  <script src="script.js"></script>
-
-<!-- GLOBAL CAT LOADING OVERLAY -->
-  <div id="catLoadingOverlay" class="cat-loading-overlay hidden">
-    <div class="cat-loading-card">
-      <img src="assets/cat Mark loading.svg" alt="Loading..." class="cat-loading-img">
-      <p class="cat-loading-text">Завантаження...</p>
-    </div>
-  </div>
-  <!-- EDIT LESSON MODAL -->
   <div id="editLessonModal" class="modal-overlay hidden">
     <div class="modal">
       <div class="card-header">
@@ -572,6 +565,15 @@
       </form>
     </div>
   </div>
-  
+
+  <!-- GLOBAL CAT LOADING OVERLAY -->
+  <div id="catLoadingOverlay" class="cat-loading-overlay hidden">
+    <div class="cat-loading-card">
+      <img src="assets/cat Mark loading.svg" alt="Loading..." class="cat-loading-img">
+      <p class="cat-loading-text">Завантаження...</p>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
