@@ -616,3 +616,33 @@ select {
 .cat-loading-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); z-index: 9999; display: flex; align-items: center; justify-content: center; }
 .cat-loading-card { background: var(--card-bg); color: var(--text); padding: 24px; border-radius: var(--radius-lg); border: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 12px; }
 .cat-loading-img { width: 120px; height: 120px; object-fit: contain; }
+
+/* ==========================================
+   📱 MOBILE TABLE & LAYOUT FIXES
+   ========================================== */
+@media (max-width: 768px) {
+  /* Запобігаємо наповзанню заголовків таблиці */
+  .table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    min-width: 650px; /* Фіксуємо мінімальну ширину, щоб колонки мали простір */
+  }
+
+  .data-table th, 
+  .data-table td {
+    padding: 8px 10px !important;
+    font-size: 11px !important;
+    white-space: nowrap; /* Забороняємо тексту ламатися в кашу всередині ячейки */
+  }
+
+  /* Дозволяємо перенесення тільки для стовпця ДЗ та теми */
+  .data-table td:nth-child(2),
+  .data-table td:nth-child(4) {
+    white-space: normal;
+    min-width: 140px;
+  }
+}
