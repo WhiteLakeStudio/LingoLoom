@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3c
 let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
 let currentLoginRole = 'teacher';
-let isTeacherRegistered = true; // За замовчуванням завжди вважаємо, що викладач ВЖЕ зареєстрований
+let isTeacherRegistered = true; 
 let pendingStudentEmail = null;
 
 const DB = {
@@ -40,7 +40,6 @@ function showToast(message, type = 'info') {
   }, 3500);
 }
 
-// Перехоплення alert
 window.alert = function(msg) { showToast(msg, 'info'); };
 
 // ==========================================
@@ -364,13 +363,11 @@ function renderTeacherStudentList() {
   studentKeys.forEach(id => {
     const st = DB.students[id];
     
-    // Заповнюємо стандартний select
     const opt = document.createElement('option');
     opt.value = st.id;
     opt.innerText = st.name;
     select.appendChild(opt);
 
-    // Створюємо кастомний пункт
     const customOpt = document.createElement('div');
     customOpt.className = `custom-option ${st.id === DB.selectedStudentId ? 'selected' : ''}`;
     customOpt.innerText = st.name;
@@ -404,7 +401,6 @@ function selectCustomStudent(id, name) {
   selectStudent(id);
 }
 
-// Закриття випадашки при кліку поза нею
 document.addEventListener('click', function(e) {
   const dropdown = document.getElementById('customStudentSelect');
   if (dropdown && !dropdown.contains(e.target)) {
@@ -485,8 +481,11 @@ function openEditLessonModal(id) {
   document.getElementById('editLessonTopic').value = lesson.topic;
   document.getElementById('editLessonIsPaid').value = lesson.isPaid;
   document.getElementById('editLessonHW').value = lesson.hw || '';
+  document.getElementById('editLessonComment').value = lesson.comment || '';
   document.getElementById('editLessonDeadline').value = lesson.deadline || '';
-  document.getElementById('editLessonLink').value = lesson.link || '';
+  
+  const existingLinks = lesson.links ? lesson.links.join('\n') : (lesson.link || '');
+  document.getElementById('editLessonLinks').value = existingLinks;
 
   openModal('editLessonModal');
 }
@@ -503,8 +502,13 @@ function handleEditLessonSubmit(e) {
     lesson.topic = document.getElementById('editLessonTopic').value;
     lesson.isPaid = document.getElementById('editLessonIsPaid').value;
     lesson.hw = document.getElementById('editLessonHW').value;
+    lesson.comment = document.getElementById('editLessonComment').value;
     lesson.deadline = document.getElementById('editLessonDeadline').value;
-    lesson.link = document.getElementById('editLessonLink').value;
+    
+    const rawLinks = document.getElementById('editLessonLinks').value;
+    const linksArray = rawLinks.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    lesson.links = linksArray;
+    lesson.link = linksArray.length > 0 ? linksArray[0] : "";
 
     syncData("saveLessons", DB.lessons);
     showToast("Урок оновлено!", "success");
@@ -695,14 +699,27 @@ function renderLessons() {
       : l.studentHwLink ? `<span class="badge badge-submitted">ДЗ здано</span>`
       : `<span class="badge badge-planned">Заплановано</span>`;
 
+    let linksHtml = '';
+    const allLinks = l.links && l.links.length > 0 ? l.links : (l.link ? [l.link] : []);
+    if (allLinks.length > 0) {
+      linksHtml = `<div class="lesson-links-container">`;
+      allLinks.forEach((linkUrl, idx) => {
+        linksHtml += `<a href="${linkUrl}" target="_blank" class="lesson-link-chip">🔗 Матеріал ${allLinks.length > 1 ? idx+1 : ''}</a>`;
+      });
+      linksHtml += `</div>`;
+    }
+
+    let teacherCommentHtml = l.comment ? `<div style="font-size:11px; color:var(--text-muted); margin-top:4px; font-style:italic;">💬 ${l.comment}</div>` : '';
+
     tr.innerHTML = `
       <td><strong>${dt}</strong></td>
       <td><strong>${l.topic}</strong></td>
       <td>${paymentBadge}</td>
       <td>
         ${l.hw ? `<div>📘 ${l.hw}</div>` : ''}
+        ${teacherCommentHtml}
         <div style="font-size:11px; color:${isExpired?'var(--danger)':'var(--text-muted)'}; margin-top:2px;">⏰ Дедлайн: <strong>${deadlineFormatted}</strong></div>
-        ${l.link ? `<a href="${l.link}" target="_blank" style="color:var(--primary); font-size:11px;">📂 Матеріали</a>` : ''}
+        ${linksHtml}
       </td>
       <td>${studentHwContent}</td>
       <td>${statusBadge}</td>
@@ -982,7 +999,7 @@ function openReviewTestModal(testId) {
     const isCorrect = userAns === q.correctIdx;
     
     details.innerHTML += `
-      <div style="padding:10px; border-radius:8px; background:rgba(0,0,0,0.15); margin-bottom:8px; border:1px solid ${isCorrect?'var(--success)':'var(--danger)'}">
+      <div style="padding:10px; background:var(--card-inner); margin-bottom:8px; border:1px solid ${isCorrect?'var(--success)':'var(--danger)'}">
         <div><strong>Питання ${idx+1}:</strong> ${q.title}</div>
         <div style="font-size:12px; margin-top:4px;">
           Ваша відповідь: <strong>${q.options[userAns] ? q.options[userAns].text : 'Немає'}</strong> ${isCorrect ? '✅' : '❌'}<br>
@@ -1050,21 +1067,19 @@ function renderPayments() {
 }
 
 // ==========================================
-// 📅 ВИПРАВЛЕНИЙ КАЛЕНДАР РОЗКЛАДУ
+// 📅 КАЛЕНДАР РОЗКЛАДУ
 // ==========================================
 function renderCalendar() {
   const container = document.getElementById('calendarGrid');
   container.innerHTML = '';
   const stId = DB.selectedStudentId;
 
-  // Дні тижня
   ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(d => {
     container.innerHTML += `<div class="calendar-day-header">${d}</div>`;
   });
 
   if(!stId || !DB.lessons[stId]) return;
 
-  // Днів у місяці
   for(let i=1; i<=31; i++) {
     const dayCell = document.createElement('div');
     dayCell.className = 'calendar-day-cell';
@@ -1073,7 +1088,7 @@ function renderCalendar() {
     
     if(hasLesson) {
       const isDone = hasLesson.status === 'done';
-      dayCell.style.background = isDone ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.12)';
+      dayCell.style.background = isDone ? 'var(--success-bg)' : 'var(--primary-glow)';
       dayCell.style.borderColor = isDone ? 'var(--success)' : 'var(--primary)';
       dayCell.innerHTML = `
         <strong style="color:${isDone?'var(--success)':'var(--primary)'};">${i}</strong>
@@ -1093,14 +1108,19 @@ function handleAddLesson(e) {
 
   if (!DB.lessons[stId]) DB.lessons[stId] = [];
 
+  const rawLinks = document.getElementById('newLessonLinks').value;
+  const linksArray = rawLinks.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+
   DB.lessons[stId].push({
     id: Date.now(),
     date: document.getElementById('newLessonDate').value,
     topic: document.getElementById('newLessonTopic').value,
     isPaid: document.getElementById('newLessonIsPaid').value,
     hw: document.getElementById('newLessonHW').value,
+    comment: document.getElementById('newLessonComment').value,
     deadline: document.getElementById('newLessonDeadline').value,
-    link: document.getElementById('newLessonLink').value,
+    link: linksArray.length > 0 ? linksArray[0] : "",
+    links: linksArray,
     studentHwLink: "",
     studentHwComment: "",
     status: 'planned'
@@ -1196,7 +1216,7 @@ function openModal(id) { document.getElementById(id).classList.remove('hidden');
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
 // ==========================================
-// 📑 ПЕРЕММИКАННЯ ВКЛАДОК (SIDEBAR NAV)
+// 📑 ПЕРЕММИКАННЯ ВКЛАДОК
 // ==========================================
 function switchTab(tabId, btn) {
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
