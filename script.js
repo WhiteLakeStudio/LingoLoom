@@ -346,23 +346,71 @@ function renderTeacherProfile() {
 function renderTeacherStudentList() {
   if (currentUserRole !== 'teacher') return;
   const select = document.getElementById('teacherStudentSelect');
+  const customLabel = document.getElementById('customSelectLabel');
+  const customOptions = document.getElementById('customSelectOptions');
+  
+  if (!select || !customOptions) return;
+  
   select.innerHTML = '';
+  customOptions.innerHTML = '';
+
   const studentKeys = Object.keys(DB.students);
   if (studentKeys.length === 0) {
     select.innerHTML = `<option value="">База порожня</option>`;
+    if (customLabel) customLabel.innerText = "База порожня";
     return;
   }
+
   studentKeys.forEach(id => {
     const st = DB.students[id];
+    
+    // Заповнюємо стандартний select
     const opt = document.createElement('option');
     opt.value = st.id;
     opt.innerText = st.name;
     select.appendChild(opt);
+
+    // Створюємо кастомний пункт
+    const customOpt = document.createElement('div');
+    customOpt.className = `custom-option ${st.id === DB.selectedStudentId ? 'selected' : ''}`;
+    customOpt.innerText = st.name;
+    customOpt.onclick = () => {
+      selectCustomStudent(st.id, st.name);
+    };
+    customOptions.appendChild(customOpt);
   });
-  if (DB.selectedStudentId) {
+
+  if (DB.selectedStudentId && DB.students[DB.selectedStudentId]) {
     select.value = DB.selectedStudentId;
+    if (customLabel) customLabel.innerText = DB.students[DB.selectedStudentId].name;
   }
 }
+
+function toggleCustomDropdown() {
+  const el = document.getElementById('customStudentSelect');
+  if (el) el.classList.toggle('open');
+}
+
+function selectCustomStudent(id, name) {
+  const select = document.getElementById('teacherStudentSelect');
+  const customLabel = document.getElementById('customSelectLabel');
+  
+  if (select) select.value = id;
+  if (customLabel) customLabel.innerText = name;
+  
+  const dropdown = document.getElementById('customStudentSelect');
+  if (dropdown) dropdown.classList.remove('open');
+  
+  selectStudent(id);
+}
+
+// Закриття випадашки при кліку поза нею
+document.addEventListener('click', function(e) {
+  const dropdown = document.getElementById('customStudentSelect');
+  if (dropdown && !dropdown.contains(e.target)) {
+    dropdown.classList.remove('open');
+  }
+});
 
 function selectStudent(id) {
   if(!id) return;
