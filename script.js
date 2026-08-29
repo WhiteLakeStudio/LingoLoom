@@ -1,7 +1,7 @@
 // ==========================================
 // 📌 КОНФІГУРАЦІЯ API (Вкажіть ваш URL з GAS)
 // ==========================================
-const API_URL = "https://script.google.com/macros/s/AKfycbwxE0F067fGyozTM3O8C_HsgmsatkxVI8VLeeJuAcZmtpLVHPZyTK_pENTfE0-sN8vN/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3cmIseRSycC_IIThjBPF0FXgv16hl8v9_AzNwIsc3Ja1Pe/exec";
 
 let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
@@ -102,7 +102,7 @@ async function checkInitialConfig() {
 }
 
 async function handleAuthSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   showLoading();
 
   const email = document.getElementById('loginUsername').value;
@@ -126,7 +126,7 @@ async function handleAuthSubmit(e) {
       const result = await res.json();
 
       if (result.success) {
-        alert("Викладача зареєстровано!");
+        alert("Викладача зареєстровано! Увійдіть з вказаними даними.");
         isTeacherRegistered = true;
         updateAuthUIState();
       } else {
@@ -158,9 +158,10 @@ async function handleAuthSubmit(e) {
       localStorage.setItem("edu_crm_token", authToken);
       await loadProtectedData();
     } else {
-      alert(result.error || "Помилка входу");
+      alert(result.error || "Помилка входу: перевірте логін та пароль");
     }
   } catch (err) {
+    alert("Помилка з'єднання з сервером Google. Перевірте посилання API_URL.");
     console.error("Помилка входу:", err);
   } finally {
     hideLoading();
@@ -168,7 +169,7 @@ async function handleAuthSubmit(e) {
 }
 
 async function handleFirstLoginPasswordSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   showLoading();
 
   const newPass = document.getElementById('firstLoginPassInput').value;
@@ -243,6 +244,7 @@ async function loadProtectedData() {
     completeLogin();
   } catch (err) {
     console.error("Помилка завантаження даних:", err);
+    logout();
   }
 }
 
@@ -380,7 +382,7 @@ function renderStudentProfile() {
 }
 
 // ==========================================
-// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ (ЗАВЕРШЕННЯ, ОПЛАТА, ДЕДЛАЙН)
+// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ (ЗАВЕРШЕННЯ, РЕДАКТУВАННЯ, ВИДАЛЕННЯ)
 // ==========================================
 function completeLesson(id) {
   const stId = DB.selectedStudentId;
@@ -391,6 +393,54 @@ function completeLesson(id) {
     syncData("saveLessons", DB.lessons);
     renderApp(); 
   }
+}
+
+function cancelLesson(id) {
+  const stId = DB.selectedStudentId;
+  if (!stId || !DB.lessons[stId]) return;
+  if (confirm("Ви дійсно бажаєте скасувати цей урок та видалити його з розкладу? Баланс учня НЕ зміниться.")) {
+    DB.lessons[stId] = DB.lessons[stId].filter(item => item.id !== id);
+    syncData("saveLessons", DB.lessons);
+    renderApp();
+  }
+}
+
+function openEditLessonModal(id) {
+  const stId = DB.selectedStudentId;
+  if (!stId || !DB.lessons[stId]) return;
+  const lesson = DB.lessons[stId].find(l => l.id === id);
+  if (!lesson) return;
+
+  document.getElementById('editLessonId').value = lesson.id;
+  document.getElementById('editLessonDate').value = lesson.date;
+  document.getElementById('editLessonTopic').value = lesson.topic;
+  document.getElementById('editLessonIsPaid').value = lesson.isPaid;
+  document.getElementById('editLessonHW').value = lesson.hw || '';
+  document.getElementById('editLessonDeadline').value = lesson.deadline || '';
+  document.getElementById('editLessonLink').value = lesson.link || '';
+
+  openModal('editLessonModal');
+}
+
+function handleEditLessonSubmit(e) {
+  if (e) e.preventDefault();
+  const stId = DB.selectedStudentId;
+  const id = Number(document.getElementById('editLessonId').value);
+  if (!stId || !DB.lessons[stId]) return;
+
+  const lesson = DB.lessons[stId].find(l => l.id === id);
+  if (lesson) {
+    lesson.date = document.getElementById('editLessonDate').value;
+    lesson.topic = document.getElementById('editLessonTopic').value;
+    lesson.isPaid = document.getElementById('editLessonIsPaid').value;
+    lesson.hw = document.getElementById('editLessonHW').value;
+    lesson.deadline = document.getElementById('editLessonDeadline').value;
+    lesson.link = document.getElementById('editLessonLink').value;
+
+    syncData("saveLessons", DB.lessons);
+    renderApp();
+  }
+  closeModal('editLessonModal');
 }
 
 function toggleLessonPayment(lessonId) {
@@ -415,7 +465,7 @@ function openExtendModal(lessonId) {
 }
 
 function handleExtendDeadlineSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const lessonId = Number(document.getElementById('activeLessonIdForDeadline').value);
   const stId = DB.selectedStudentId;
   const lesson = DB.lessons[stId].find(l => l.id === lessonId);
@@ -440,7 +490,7 @@ function openHwModal(lessonId) {
 }
 
 function handleStudentHwSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const lessonId = Number(document.getElementById('activeLessonIdForHw').value);
   const stId = DB.selectedStudentId;
   const lesson = DB.lessons[stId].find(l => l.id === lessonId);
@@ -460,7 +510,7 @@ function alertOverdue() {
 }
 
 function handleAddStudent(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const id = 'st_' + Date.now();
   
   const newStudent = {
@@ -493,7 +543,7 @@ function handleAddStudent(e) {
 function setLoginRole(role) {
   currentLoginRole = role;
   document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (event && event.target) event.target.classList.add('active');
 
   if (role === 'student') {
     document.getElementById('teacherRegisterFields').classList.add('hidden');
@@ -554,12 +604,16 @@ function renderLessons() {
       else actionBtn = `<button class="btn btn-sm" onclick="openHwModal(${l.id})">${l.studentHwLink ? '✏️ Змінити ДЗ' : '📤 Надіслати ДЗ'}</button>`;
     } else {
       if (l.status === 'planned') {
-        actionBtn = `<div style="display:flex; gap:6px;">
-          <button class="btn btn-sm" onclick="completeLesson(${l.id})">Завершити</button>
-          <button class="btn btn-sm btn-secondary" onclick="openExtendModal(${l.id})">⏳ Термін</button>
+        actionBtn = `<div style="display:flex; gap:4px; flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="completeLesson(${l.id})" title="Завершити та списати 1 урок">✓ Завершити</button>
+          <button class="btn btn-sm btn-secondary" onclick="openEditLessonModal(${l.id})" title="Редагувати / Перенести">✏️ Перенести</button>
+          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити з розкладу без списання">🗑️ Скасувати</button>
         </div>`;
       } else {
-        actionBtn = `<span style="font-size:12px; color:var(--success);">✓ Проведено</span>`;
+        actionBtn = `<div style="display:flex; gap:4px; align-items:center;">
+          <span style="font-size:12px; color:var(--success);">✓ Проведено</span>
+          <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити запис">🗑️</button>
+        </div>`;
       }
     }
 
@@ -681,7 +735,7 @@ function renderCalendar() {
 }
 
 function handleAddLesson(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const stId = DB.selectedStudentId;
   if (!stId) { alert("Спочатку оберіть учня!"); return; }
 
@@ -706,7 +760,7 @@ function handleAddLesson(e) {
 }
 
 function handleAddPayment(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const stId = DB.selectedStudentId;
   if (!stId) return;
 
@@ -733,7 +787,7 @@ function handleAddPayment(e) {
 }
 
 function handleEditStudentSubmit(e) {
-  e.preventDefault();
+  if (e) e.preventDefault();
   const st = DB.students[DB.selectedStudentId];
   if (!st) return;
 
