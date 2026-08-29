@@ -646,3 +646,66 @@ select {
     min-width: 140px;
   }
 }
+
+/* ==========================================
+   📱 MOBILE CARD-VIEW FOR TABLES (МОБІЛЬНЕ ОФОРМЛЕННЯ ТАБЛИЦЬ)
+   ========================================== */
+@media (max-width: 768px) {
+  /* Ховаємо звичайну шапку таблиці на телефонах */
+  .data-table thead {
+    display: none !important;
+  }
+
+  .data-table, 
+  .data-table tbody, 
+  .data-table tr, 
+  .data-table td {
+    display: block !important;
+    width: 100% !important;
+  }
+
+  /* Кожен рядок уроку стає окремою акуратною карткою */
+  .data-table tr {
+    background: var(--card-bg) !important;
+    border: 1px solid var(--border-strong) !important;
+    margin-bottom: 12px !important;
+    padding: 12px !important;
+    box-shadow: var(--shadow-soft);
+  }
+
+  .data-table td {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px dashed var(--border) !important;
+    text-align: right !important;
+    font-size: 12px !important;
+  }
+
+  .data-table td:last-child {
+    border-bottom: none !important;
+    padding-top: 10px !important;
+    justify-content: flex-end !important;
+  }
+
+  /* Додаємо підказки (label) перед кожним полем на телефоні */
+  .data-table td:nth-child(1)::before { content: "Дата:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(2)::before { content: "Тема:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(3)::before { content: "Оплата:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(4)::before { content: "ДЗ та Дедлайн:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(5)::before { content: "Виконане ДЗ:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(6)::before { content: "Статус:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(7)::before { content: "Дія:"; font-weight: 800; color: var(--text-muted); display: none; }
+
+  /* Вирівнюємо вміст усередині ячейок на мобільному */
+  .data-table td > div {
+    text-align: right;
+  }
+
+  .lesson-links-container {
+    align-items: flex-end;
+  }
+}
