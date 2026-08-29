@@ -6,7 +6,7 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwwt3DkxIKzPIOd8Yg58g3c
 let authToken = localStorage.getItem("edu_crm_token") || null;
 let currentUserRole = null;
 let currentLoginRole = 'teacher';
-let isTeacherRegistered = false;
+let isTeacherRegistered = true; // За замовчуванням завжди вважаємо, що викладач ВЖЕ зареєстрований
 let pendingStudentEmail = null;
 
 const DB = {
@@ -103,22 +103,26 @@ function closeWelcomeSplash() {
 }
 
 // ==========================================
-// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ (ОРИГІНАЛЬНІ GET-МЕТОДИ)
+// 🔄 СИНХРОНІЗАЦІЯ ТА АВТОРИЗАЦІЯ
 // ==========================================
 async function checkInitialConfig() {
   showLoading();
   try {
     const res = await fetch(`${API_URL}?action=getInitialConfig`);
-    const data = await res.json();
-    isTeacherRegistered = data.isRegistered;
+    if (res.ok) {
+      const data = await res.json();
+      if (typeof data.isRegistered !== 'undefined') {
+        isTeacherRegistered = data.isRegistered;
+      }
+    }
+  } catch (err) {
+    console.warn("З'єднання з сервером затрималося, активовано стандартний режим входу:", err);
+    isTeacherRegistered = true;
+  } finally {
     updateAuthUIState();
-
     if (authToken) {
       await loadProtectedData();
     }
-  } catch (err) {
-    console.error("Помилка ініціалізації:", err);
-  } finally {
     hideLoading();
   }
 }
@@ -397,7 +401,7 @@ function renderStudentProfile() {
 }
 
 // ==========================================
-// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ
+// 📚 КЕРУВАННЯ ЗАНЯТТЯМИ (ЖУРНАЛ УРОКІВ)
 // ==========================================
 function completeLesson(id) {
   const stId = DB.selectedStudentId;
@@ -620,19 +624,19 @@ function renderLessons() {
 
     let actionBtn = '';
     if (currentUserRole === 'student') {
-      if (l.status === 'done') actionBtn = `<span style="font-size:12px; color:var(--success);">✓ Завершено</span>`;
+      if (l.status === 'done') actionBtn = `<span style="font-size:12px; color:var(--success); font-weight:700;">✓ Завершено</span>`;
       else if (isExpired) actionBtn = `<button class="btn btn-sm btn-danger" onclick="alertOverdue()">⚠️ Прострочено</button>`;
       else actionBtn = `<button class="btn btn-sm" onclick="openHwModal(${l.id})">${l.studentHwLink ? '✏️ Змінити ДЗ' : '📤 Надіслати ДЗ'}</button>`;
     } else {
       if (l.status === 'planned') {
-        actionBtn = `<div style="display:flex; gap:4px; flex-wrap:wrap;">
+        actionBtn = `<div class="action-btn-group">
           <button class="btn btn-sm" onclick="completeLesson(${l.id})" title="Завершити урок">✓</button>
           <button class="btn btn-sm btn-secondary" onclick="openEditLessonModal(${l.id})" title="Редагувати">✏️</button>
           <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})" title="Видалити">🗑️</button>
         </div>`;
       } else {
-        actionBtn = `<div style="display:flex; gap:4px; align-items:center;">
-          <span style="font-size:12px; color:var(--success);">✓ Проведено</span>
+        actionBtn = `<div class="action-btn-group">
+          <span class="badge badge-paid">✓ Проведено</span>
           <button class="btn btn-sm btn-danger" onclick="cancelLesson(${l.id})">🗑️</button>
         </div>`;
       }
@@ -997,28 +1001,38 @@ function renderPayments() {
   }
 }
 
+// ==========================================
+// 📅 ВИПРАВЛЕНИЙ КАЛЕНДАР РОЗКЛАДУ
+// ==========================================
 function renderCalendar() {
   const container = document.getElementById('calendarGrid');
   container.innerHTML = '';
   const stId = DB.selectedStudentId;
 
+  // Дні тижня
   ['Пн','Вт','Ср','Чт','Пт','Сб','Нд'].forEach(d => {
-    container.innerHTML += `<div style="font-weight:bold; font-size:12px; color:var(--text-muted); padding-bottom:6px;">${d}</div>`;
+    container.innerHTML += `<div class="calendar-day-header">${d}</div>`;
   });
 
   if(!stId || !DB.lessons[stId]) return;
 
+  // Днів у місяці
   for(let i=1; i<=31; i++) {
     const dayCell = document.createElement('div');
-    dayCell.style.cssText = "padding:8px; border:1px solid var(--border); border-radius:10px; font-size:11px; min-height:48px; background: rgba(0,0,0,0.15);";
+    dayCell.className = 'calendar-day-cell';
+    
     const hasLesson = DB.lessons[stId].find(l => new Date(l.date).getDate() === i);
     
     if(hasLesson) {
-      dayCell.style.background = hasLesson.status === 'done' ? 'rgba(16,185,129,0.15)' : 'rgba(99,102,241,0.2)';
-      dayCell.style.borderColor = hasLesson.status === 'done' ? 'var(--success)' : 'var(--primary)';
-      dayCell.innerHTML = `<strong>${i}</strong><br><span style="font-size:10px;">${hasLesson.topic}</span>`;
+      const isDone = hasLesson.status === 'done';
+      dayCell.style.background = isDone ? 'rgba(16,185,129,0.1)' : 'rgba(99,102,241,0.12)';
+      dayCell.style.borderColor = isDone ? 'var(--success)' : 'var(--primary)';
+      dayCell.innerHTML = `
+        <strong style="color:${isDone?'var(--success)':'var(--primary)'};">${i}</strong>
+        <span style="font-size:10px; font-weight:700; line-height:1.2;">${hasLesson.topic}</span>
+      `;
     } else {
-      dayCell.innerHTML = `<span style="color:var(--text-muted);">${i}</span>`;
+      dayCell.innerHTML = `<span style="color:var(--text-light);">${i}</span>`;
     }
     container.appendChild(dayCell);
   }
@@ -1133,8 +1147,11 @@ function openEditStudentModal() {
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
+// ==========================================
+// 📑 ПЕРЕММИКАННЯ ВКЛАДОК (SIDEBAR NAV)
+// ==========================================
 function switchTab(tabId, btn) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   ['progressTab', 'testsTab', 'calendarTab', 'paymentsTab'].forEach(id => {
     const tab = document.getElementById(id);
@@ -1146,7 +1163,7 @@ function switchTab(tabId, btn) {
 
 function toggleTheme() {
   const current = document.body.getAttribute('data-theme');
-  document.body.setAttribute('data-theme', current === 'light' ? 'dark' : 'light');
+  document.body.setAttribute('data-theme', current === 'dark' ? 'light' : 'dark');
 }
 
 window.onload = function() {
