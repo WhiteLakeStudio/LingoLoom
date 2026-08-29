@@ -927,28 +927,30 @@ function handleEditTeacher(e) {
   closeModal('editTeacherModal');
 }
 
-// ==========================================
-// 💳 ВИВІД ОПЛАТ ТА ТРАНЗАКЦІЙ (ПОВНИЙ ФІКС)
-// ==========================================
 function renderPayments() {
   const stId = DB.selectedStudentId;
   const tbody = document.getElementById('paymentsTableBody');
   if(!tbody) return;
   tbody.innerHTML = '';
   
+  // Додаємо клас для розпізнавання мобільних підписів транзакцій
+  const tableParent = tbody.closest('table');
+  if (tableParent) tableParent.classList.add('payments-table');
+
   if(!stId || (!DB.students[stId] && !DB.studentProfile)) return;
 
-  const st = (currentUserRole === 'student') ? DB.studentProfile : DB.students[stId];
+  const st = currentUserRole === 'student' ? DB.studentProfile : DB.students[stId];
+  
   if (st && st.payments) {
     st.payments.forEach(p => {
       const tr = document.createElement('tr');
-      const periodStr = (p.periodFrom && p.periodTo) ? `${p.periodFrom} — ${p.periodTo}` : 'Поповнення балансу';
+      const periodStr = (p.periodFrom && p.periodTo) ? `${p.periodFrom} — ${p.periodTo}` : 'Разове поповнення';
       tr.innerHTML = `
-        <td>${p.date || '-'}</td>
-        <td>Поповнення</td>
-        <td>${periodStr}</td>
-        <td>+${p.count || 0} занять</td>
-        <td><strong style="color:var(--success);">${p.amount || 0} грн</strong></td>
+        <td>${p.date}</td>
+        <td><strong>Поповнення балансу</strong></td>
+        <td>📅 ${periodStr}</td>
+        <td>+${p.count} занять</td>
+        <td><strong style="color:var(--success);">${p.amount} грн</strong></td>
       `;
       tbody.appendChild(tr);
     });
@@ -957,14 +959,13 @@ function renderPayments() {
   if (DB.lessons[stId]) {
     DB.lessons[stId].forEach(l => {
       const tr = document.createElement('tr');
-      const dt = l.date ? new Date(l.date).toLocaleDateString('uk-UA') : '-';
-      const payStatus = l.isPaid === 'paid' ? '<span class="badge badge-paid">Оплачено</span>' : '<span class="badge badge-unpaid">Борг</span>';
+      const dt = new Date(l.date).toLocaleDateString('uk-UA');
       tr.innerHTML = `
         <td>${dt}</td>
-        <td>Урок: ${l.topic || '-'}</td>
-        <td>Розклад заняття</td>
+        <td>Урок: ${l.topic}</td>
+        <td>Заняття у розкладі</td>
         <td>1 урок</td>
-        <td>${payStatus}</td>
+        <td><span class="badge ${l.isPaid==='paid'?'badge-paid':'badge-unpaid'}">${l.isPaid==='paid'?'Оплачено':'Не оплачено'}</span></td>
       `;
       tbody.appendChild(tr);
     });
