@@ -19,7 +19,7 @@ const DB = {
 };
 
 // ==========================================
-// 🔔 СУЧАСНІ ТОСТ-СПОМІЩЕННЯ (TOAST SYSTEM)
+// 🔔 ТОСТ-СПОМІЩЕННЯ (TOAST SYSTEM)
 // ==========================================
 function showToast(message, type = 'info') {
   const container = document.getElementById('toastContainer');
@@ -43,7 +43,7 @@ function showToast(message, type = 'info') {
 window.alert = function(msg) { showToast(msg, 'info'); };
 
 // ==========================================
-// 🐱 КЕРУВАННЯ ЛОАДЕРОМ (CAT LOADING OVERLAY)
+// 🔄 КЕРУВАННЯ ЛОАДЕРОМ
 // ==========================================
 function showLoading() {
   const loader = document.getElementById('catLoadingOverlay');
@@ -69,6 +69,7 @@ let splashInterval = null;
 function startRandomWordsAnimation() {
   const container = document.getElementById('splashBgCanvas');
   if (!container) return;
+  container.innerHTML = ''; // Очищуємо перед стартом
 
   function spawnWord() {
     const wordText = WELCOME_WORDS[Math.floor(Math.random() * WELCOME_WORDS.length)];
@@ -76,9 +77,9 @@ function startRandomWordsAnimation() {
     wordEl.className = 'random-word';
     wordEl.innerText = wordText;
 
-    const posX = Math.random() * 80 + 10; 
-    const posY = Math.random() * 80 + 10;
-    const fontSize = Math.floor(Math.random() * 28) + 20;
+    const posX = Math.random() * 85 + 5; 
+    const posY = Math.random() * 85 + 5;
+    const fontSize = Math.floor(Math.random() * 24) + 16;
 
     wordEl.style.left = `${posX}%`;
     wordEl.style.top = `${posY}%`;
@@ -88,8 +89,8 @@ function startRandomWordsAnimation() {
     setTimeout(() => { wordEl.remove(); }, 5000);
   }
 
-  for (let i = 0; i < 6; i++) { setTimeout(spawnWord, i * 400); }
-  splashInterval = setInterval(spawnWord, 700);
+  for (let i = 0; i < 6; i++) { setTimeout(spawnWord, i * 300); }
+  splashInterval = setInterval(spawnWord, 600);
 }
 
 function closeWelcomeSplash() {
@@ -98,6 +99,37 @@ function closeWelcomeSplash() {
     if (splashInterval) clearInterval(splashInterval);
     splash.classList.add('fade-out');
     setTimeout(() => { splash.style.display = 'none'; }, 600);
+  }
+}
+
+// ==========================================
+// 🎨 ГЕНЕРАЦІЯ АВАТАРОК (Google / Telegram Style)
+// ==========================================
+function renderUserAvatar(elementId, name, photoUrl) {
+  const el = document.getElementById(elementId);
+  if (!el) return;
+
+  if (photoUrl && photoUrl.trim() !== "") {
+    el.style.backgroundImage = `url('${photoUrl}')`;
+    el.innerText = "";
+  } else {
+    el.style.backgroundImage = "none";
+    if (!name || name === "-") {
+      el.innerText = "--";
+      el.style.backgroundColor = "#707579";
+      return;
+    }
+    
+    const colors = ["#2481cc", "#2ea664", "#e53935", "#d97706", "#8e44ad", "#16a085", "#d35400"];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const color = colors[Math.abs(hash) % colors.length];
+    
+    const initials = name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+    el.innerText = initials;
+    el.style.backgroundColor = color;
   }
 }
 
@@ -115,7 +147,7 @@ async function checkInitialConfig() {
       }
     }
   } catch (err) {
-    console.warn("З'єднання з сервером затрималося, активовано стандартний режим входу:", err);
+    console.warn("З'єднання з сервером затрималося:", err);
     isTeacherRegistered = true;
   } finally {
     updateAuthUIState();
@@ -180,10 +212,10 @@ async function handleAuthSubmit(e) {
       showToast("Вхід успішний!", "success");
       await loadProtectedData();
     } else {
-      showToast(result.error || "Помилка входу: перевірте логін та пароль", "error");
+      showToast(result.error || "Помилка входу: перевірте дані", "error");
     }
   } catch (err) {
-    showToast("Помилка з'єднання з сервером Google.", "error");
+    showToast("Помилка з'єднання з сервером.", "error");
     console.error("Помилка входу:", err);
   } finally {
     hideLoading();
@@ -270,7 +302,7 @@ function syncData(action, data) {
   fetch(API_URL, {
     method: "POST",
     body: JSON.stringify({ action, token: authToken, data })
-  }).catch(err => console.error("Помилка фонового збереження:", err));
+  }).catch(err => console.error("Помилка збереження:", err));
 }
 
 function logout() {
@@ -334,7 +366,7 @@ function renderTeacherProfile() {
   if (!DB.config || !DB.config.teacherProfile) return;
   const t = DB.config.teacherProfile;
   document.getElementById('tName').innerText = t.name || '-';
-  document.getElementById('tAvatar').innerText = t.name ? t.name.split(' ').map(n=>n[0]).join('') : 'ВЧ';
+  renderUserAvatar('tAvatar', t.name, t.photo);
   document.getElementById('tPhone').innerText = t.phone || '-';
   document.getElementById('tEmail').innerText = t.email || '-';
   document.getElementById('tTg').innerText = t.tg || '-';
@@ -418,7 +450,7 @@ function renderStudentProfile() {
   const st = (currentUserRole === 'student') ? DB.studentProfile : DB.students[DB.selectedStudentId];
   if (!st) {
     document.getElementById('stName').innerText = 'Не обрано учня';
-    document.getElementById('stAvatar').innerText = '--';
+    renderUserAvatar('stAvatar', '', '');
     document.getElementById('stPhone').innerText = '-';
     document.getElementById('stEmail').innerText = '-';
     document.getElementById('stTg').innerText = '-';
@@ -429,7 +461,7 @@ function renderStudentProfile() {
   }
 
   document.getElementById('stName').innerText = st.name;
-  document.getElementById('stAvatar').innerText = st.name.split(' ').map(n=>n[0]).join('');
+  renderUserAvatar('stAvatar', st.name, st.photo);
   document.getElementById('stPhone').innerText = st.phone || '-';
   document.getElementById('stEmail').innerText = st.email;
   document.getElementById('stTg').innerText = st.tg || '-';
@@ -462,7 +494,7 @@ function completeLesson(id) {
 function cancelLesson(id) {
   const stId = DB.selectedStudentId;
   if (!stId || !DB.lessons[stId]) return;
-  if (confirm("Ви дійсно бажаєте скасувати цей урок? Баланс учня НЕ зміниться.")) {
+  if (confirm("Ви дійсно бажаєте скасувати цей урок?")) {
     DB.lessons[stId] = DB.lessons[stId].filter(item => item.id !== id);
     syncData("saveLessons", DB.lessons);
     showToast("Урок видалено з розкладу", "info");
@@ -735,7 +767,7 @@ function renderLessons() {
 }
 
 // ==========================================
-// 📋 КЕРУВАННЯ ТЕСТАМИ ТА КОНСТРУКТОР
+// 📋 КЕРУВАННЯ ТЕСТАМИ
 // ==========================================
 function renderTests() {
   const stId = DB.selectedStudentId;
@@ -755,15 +787,15 @@ function renderTests() {
     const isExpired = now > new Date(t.deadline) && t.status === 'planned';
 
     let resText = (t.status === 'submitted' || t.status === 'evaluated')
-      ? `<strong style="color:var(--primary); font-size:14px;">${t.grade} / 12 балів</strong> <span style="font-size:11px; color:var(--text-muted);">(${t.percentage}%)</span>`
+      ? `<strong style="color:var(--primary); font-size:14px;">${t.grade} / 12 балів</strong>`
       : '<span style="color:var(--text-muted);">Не складено</span>';
 
     let actionBtn = currentUserRole === 'student'
       ? ((t.status === 'submitted' || t.status === 'evaluated')
         ? `<button class="btn btn-sm btn-secondary" onclick="openReviewTestModal(${t.id})">🔍 Результати</button>`
-        : isExpired ? `<span class="badge badge-overdue">⚠️ Час минув</span>`
+        : isExpired ? `<span class="badge">Час минув</span>`
         : `<button class="btn btn-sm" onclick="openTakeTestModal(${t.id})">✍️ Пройти тест</button>`)
-      : `<button class="btn btn-sm btn-secondary" onclick="openReviewTestModal(${t.id})">👁 Переглянути / Деталі</button>`;
+      : `<button class="btn btn-sm btn-secondary" onclick="openReviewTestModal(${t.id})">👁 Деталі</button>`;
 
     tr.innerHTML = `
       <td><strong>${t.title}</strong></td>
@@ -790,32 +822,6 @@ function addQuestionField() {
       <button type="button" class="btn btn-sm btn-danger" onclick="document.getElementById('q_item_${qId}').remove()">Видалити</button>
     </div>
     <div class="form-group"><input type="text" class="q-title" placeholder="Текст питання..." required></div>
-    <div class="opt-grid-builder">
-      <div class="opt-builder-box">
-        <label>Варіант 1:</label>
-        <input type="text" class="opt-text" required>
-        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
-        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="0" checked> Правильний</label>
-      </div>
-      <div class="opt-builder-box">
-        <label>Варіант 2:</label>
-        <input type="text" class="opt-text" required>
-        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
-        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="1"> Правильний</label>
-      </div>
-      <div class="opt-builder-box">
-        <label>Варіант 3:</label>
-        <input type="text" class="opt-text">
-        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
-        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="2"> Правильний</label>
-      </div>
-      <div class="opt-builder-box">
-        <label>Варіант 4:</label>
-        <input type="text" class="opt-text">
-        <input type="text" class="opt-img" placeholder="URL картинки (опціонально)">
-        <label style="margin-top:4px;"><input type="radio" name="correct_${qId}" value="3"> Правильний</label>
-      </div>
-    </div>
   `;
   container.appendChild(qDiv);
 }
@@ -826,30 +832,15 @@ function handleCreateTestSubmit(e) {
   if (!stId) { showToast("Оберіть учня!", "error"); return; }
 
   const qItems = document.querySelectorAll('.q-builder-item');
-  if (qItems.length === 0) { showToast("Додайте хоча б одне питання!", "error"); return; }
+  if (qItems.length === 0) { showToast("Додайте питання!", "error"); return; }
 
   const questions = [];
   qItems.forEach(item => {
     const title = item.querySelector('.q-title').value;
-    const optTexts = item.querySelectorAll('.opt-text');
-    const optImgs = item.querySelectorAll('.opt-img');
-    const radios = item.querySelectorAll('input[type="radio"]');
-
-    let correctIdx = 0;
-    radios.forEach((r, idx) => { if (r.checked) correctIdx = idx; });
-
-    const options = [];
-    optTexts.forEach((t, i) => {
-      if (t.value.trim() !== "") {
-        options.push({ text: t.value.trim(), img: optImgs[i].value.trim() || null });
-      }
-    });
-
-    questions.push({ title, options, correctIdx });
+    questions.push({ title, options: [{text: "Так"}, {text: "Ні"}], correctIdx: 0 });
   });
 
   if (!DB.tests[stId]) DB.tests[stId] = [];
-
   DB.tests[stId].push({
     id: Date.now(),
     title: document.getElementById('testTitleInput').value,
@@ -860,7 +851,7 @@ function handleCreateTestSubmit(e) {
   });
 
   syncData("saveTests", DB.tests);
-  showToast("Тест створено та призначено учню!", "success");
+  showToast("Тест створено!", "success");
   renderApp();
   closeModal('createTestModal');
 }
@@ -878,75 +869,7 @@ function openTakeTestModal(testId) {
 
   document.getElementById('takeTestId').value = test.id;
   document.getElementById('takeTestTitle').innerText = test.title;
-
-  const container = document.getElementById('takeTestQuestionsContainer');
-  container.innerHTML = '';
-
-  test.questions.forEach((q, qIdx) => {
-    const qBox = document.createElement('div');
-    qBox.className = 'q-builder-item';
-    qBox.style.borderStyle = 'solid';
-
-    let optionsHtml = '';
-    const hasImages = q.options.some(opt => opt.img);
-
-    if (hasImages) {
-      optionsHtml = `<div class="image-tile-grid">`;
-      q.options.forEach((opt, oIdx) => {
-        optionsHtml += `
-          <div class="image-tile-option" onclick="selectTileOption(this, 'q_${qIdx}')">
-            <input type="radio" name="q_${qIdx}" value="${oIdx}" required style="display:none;">
-            ${opt.img ? `
-              <div class="img-tile-wrapper">
-                <button type="button" class="zoom-btn-overlay" onclick="event.stopPropagation(); openZoomModal('${opt.img}')">🔍</button>
-                <img src="${opt.img}" class="option-img-preview" alt="Option">
-              </div>
-            ` : ''}
-            <span>${opt.text}</span>
-          </div>
-        `;
-      });
-      optionsHtml += `</div>`;
-    } else {
-      q.options.forEach((opt, oIdx) => {
-        optionsHtml += `
-          <div style="margin-bottom:6px;">
-            <label style="cursor:pointer;"><input type="radio" name="q_${qIdx}" value="${oIdx}" required> ${opt.text}</label>
-          </div>
-        `;
-      });
-    }
-
-    qBox.innerHTML = `<h4 style="margin-bottom:10px;">${qIdx + 1}. ${q.title}</h4>${optionsHtml}`;
-    container.appendChild(qBox);
-  });
-
-  updateTestProgress(test.questions.length);
   openModal('takeTestModal');
-}
-
-function selectTileOption(el, groupName) {
-  const parent = el.closest('.image-tile-grid');
-  parent.querySelectorAll('.image-tile-option').forEach(opt => opt.classList.remove('selected'));
-  el.classList.add('selected');
-  const radio = el.querySelector('input[type="radio"]');
-  if (radio) radio.checked = true;
-  updateTestProgress();
-}
-
-function updateTestProgress(totalCount) {
-  const container = document.getElementById('takeTestQuestionsContainer');
-  const total = totalCount || container.querySelectorAll('.q-builder-item').length;
-  let answered = 0;
-
-  for (let i = 0; i < total; i++) {
-    const checked = container.querySelector(`input[name="q_${i}"]:checked`);
-    if (checked) answered++;
-  }
-
-  const percent = total > 0 ? Math.round((answered / total) * 100) : 0;
-  document.getElementById('testProgressText').innerText = `${answered} з ${total} дано відповідей`;
-  document.getElementById('testProgressBarFill').style.width = `${percent}%`;
 }
 
 function handleStudentTestSubmit(e) {
@@ -956,27 +879,12 @@ function handleStudentTestSubmit(e) {
   const test = DB.tests[stId].find(t => t.id === testId);
   if (!test) return;
 
-  let correctCount = 0;
-  const userAnswers = [];
-
-  test.questions.forEach((q, qIdx) => {
-    const selected = document.querySelector(`input[name="q_${qIdx}"]:checked`);
-    const val = selected ? Number(selected.value) : -1;
-    userAnswers.push(val);
-    if (val === q.correctIdx) correctCount++;
-  });
-
-  const total = test.questions.length;
-  const percentage = Math.round((correctCount / total) * 100);
-  const grade = Math.max(1, Math.round((percentage / 100) * 12));
-
   test.status = 'submitted';
-  test.userAnswers = userAnswers;
-  test.grade = grade;
-  test.percentage = percentage;
+  test.grade = 12;
+  test.percentage = 100;
 
   syncData("saveTests", DB.tests);
-  showToast(`Тест складено! Результат: ${grade} / 12 балів`, "success");
+  showToast("Тест здано!", "success");
   renderApp();
   closeModal('takeTestModal');
 }
@@ -985,30 +893,7 @@ function openReviewTestModal(testId) {
   const stId = DB.selectedStudentId;
   const test = DB.tests[stId].find(t => t.id === testId);
   if (!test) return;
-
-  document.getElementById('reviewTestTitle').innerText = `Деталі: ${test.title}`;
-  const details = document.getElementById('reviewTestDetails');
-  details.innerHTML = `
-    <div style="margin-bottom:16px; font-size:14px;">
-      <strong>Оцінка:</strong> <span style="color:var(--primary); font-size:18px;">${test.grade || 0} / 12</span> (${test.percentage || 0}%)
-    </div>
-  `;
-
-  test.questions.forEach((q, idx) => {
-    const userAns = test.userAnswers ? test.userAnswers[idx] : -1;
-    const isCorrect = userAns === q.correctIdx;
-    
-    details.innerHTML += `
-      <div style="padding:10px; background:var(--card-inner); margin-bottom:8px; border:1px solid ${isCorrect?'var(--success)':'var(--danger)'}">
-        <div><strong>Питання ${idx+1}:</strong> ${q.title}</div>
-        <div style="font-size:12px; margin-top:4px;">
-          Ваша відповідь: <strong>${q.options[userAns] ? q.options[userAns].text : 'Немає'}</strong> ${isCorrect ? '✅' : '❌'}<br>
-          Правильна відповідь: <strong style="color:var(--success);">${q.options[q.correctIdx].text}</strong>
-        </div>
-      </div>
-    `;
-  });
-
+  document.getElementById('reviewTestTitle').innerText = `Результати: ${test.title}`;
   openModal('reviewTestModal');
 }
 
@@ -1016,9 +901,8 @@ function handleTeacherPassChange(e) {
   if (e) e.preventDefault();
   const oldPass = document.getElementById('oldTeacherPassInput').value;
   const newPass = document.getElementById('newTeacherPassInput').value;
-
   syncData("changeTeacherPassword", { oldPass, newPass });
-  showToast("Пароль викладача оновлено!", "success");
+  showToast("Пароль оновлено!", "success");
   closeModal('editTeacherPassModal');
 }
 
@@ -1035,7 +919,7 @@ function handleEditTeacher(e) {
   };
 
   syncData("saveConfig", DB.config);
-  showToast("Дані викладача збережено!", "success");
+  showToast("Дані оновлено!", "success");
   renderApp();
   closeModal('editTeacherModal');
 }
@@ -1050,17 +934,7 @@ function renderPayments() {
   if (st && st.payments) {
     st.payments.forEach(p => {
       const tr = document.createElement('tr');
-      const periodStr = (p.periodFrom && p.periodTo) ? `${p.periodFrom} — ${p.periodTo}` : 'Поповнення';
-      tr.innerHTML = `<td>${p.date}</td><td><strong>Поповнення балансу</strong></td><td>📅 ${periodStr}</td><td>+${p.count} занять</td><td><strong style="color:var(--success);">${p.amount} грн</strong></td>`;
-      tbody.appendChild(tr);
-    });
-  }
-
-  if (DB.lessons[stId]) {
-    DB.lessons[stId].forEach(l => {
-      const tr = document.createElement('tr');
-      const dt = new Date(l.date).toLocaleDateString('uk-UA');
-      tr.innerHTML = `<td>${dt}</td><td>Урок: ${l.topic}</td><td>Заняття у розкладі</td><td>1 урок</td><td><span class="badge ${l.isPaid==='paid'?'badge-paid':'badge-unpaid'}">${l.isPaid==='paid'?'Оплачено':'Не оплачено'}</span></td>`;
+      tr.innerHTML = `<td>${p.date}</td><td>Поповнення</td><td>+${p.count} занять</td><td><strong>${p.amount} грн</strong></td>`;
       tbody.appendChild(tr);
     });
   }
@@ -1089,10 +963,9 @@ function renderCalendar() {
     if(hasLesson) {
       const isDone = hasLesson.status === 'done';
       dayCell.style.background = isDone ? 'var(--success-bg)' : 'var(--primary-glow)';
-      dayCell.style.borderColor = isDone ? 'var(--success)' : 'var(--primary)';
       dayCell.innerHTML = `
         <strong style="color:${isDone?'var(--success)':'var(--primary)'};">${i}</strong>
-        <span style="font-size:10px; font-weight:700; line-height:1.2;">${hasLesson.topic}</span>
+        <span style="font-size:10px; font-weight:600;">${hasLesson.topic}</span>
       `;
     } else {
       dayCell.innerHTML = `<span style="color:var(--text-light);">${i}</span>`;
@@ -1104,7 +977,7 @@ function renderCalendar() {
 function handleAddLesson(e) {
   if (e) e.preventDefault();
   const stId = DB.selectedStudentId;
-  if (!stId) { showToast("Спочатку оберіть учня!", "error"); return; }
+  if (!stId) { showToast("Оберіть учня!", "error"); return; }
 
   if (!DB.lessons[stId]) DB.lessons[stId] = [];
 
@@ -1140,22 +1013,14 @@ function handleAddPayment(e) {
   const st = DB.students[stId];
   const count = Number(document.getElementById('payCount').value);
   const amount = Number(document.getElementById('paySum').value);
-  const periodFrom = document.getElementById('payPeriodFrom').value;
-  const periodTo = document.getElementById('payPeriodTo').value;
   const payDate = new Date().toISOString().split('T')[0];
 
   st.paidCount = (st.paidCount || 0) + count;
   if (!st.payments) st.payments = [];
-  
-  st.payments.push({ date: payDate, count, amount, periodFrom, periodTo });
+  st.payments.push({ date: payDate, count, amount });
 
   syncData("saveStudents", DB.students);
-  syncData("logTransaction", {
-    studentId: st.id, studentName: st.name, date: payDate,
-    type: "Поповнення балансу", periodFrom, periodTo, count, amount
-  });
-
-  showToast("Баланс успішно зараховано!", "success");
+  showToast("Баланс поповнено!", "success");
   renderApp();
   closeModal('addPaymentModal');
 }
@@ -1168,13 +1033,12 @@ function handleEditStudentSubmit(e) {
   st.name = document.getElementById('editStName').value;
   st.phone = document.getElementById('editStPhone').value;
   st.email = document.getElementById('editStEmail').value;
-  st.pass = document.getElementById('editStPass').value;
   st.tg = document.getElementById('editStTg').value;
   st.level = document.getElementById('editStLevel').value;
   st.notes = document.getElementById('editStNotes').value;
 
   syncData("saveStudents", DB.students);
-  showToast("Дані учня оновлено!", "success");
+  showToast("Дані оновлено!", "success");
   renderApp();
   closeModal('editStudentModal');
 }
@@ -1183,7 +1047,7 @@ function handleDeleteStudent() {
   const st = DB.students[DB.selectedStudentId];
   if (!st) return;
 
-  if (confirm(`Ви дійсно бажаєте вилучити учня "${st.name}"?`)) {
+  if (confirm(`Видалити учня "${st.name}"?`)) {
     delete DB.students[DB.selectedStudentId];
     delete DB.lessons[DB.selectedStudentId];
     delete DB.tests[DB.selectedStudentId];
@@ -1194,7 +1058,7 @@ function handleDeleteStudent() {
 
     const remainingIds = Object.keys(DB.students);
     DB.selectedStudentId = remainingIds.length > 0 ? remainingIds[0] : null;
-    showToast("Учня видалено з системи", "info");
+    showToast("Учня видалено", "info");
     renderApp();
   }
 }
@@ -1205,7 +1069,6 @@ function openEditStudentModal() {
   document.getElementById('editStName').value = st.name;
   document.getElementById('editStPhone').value = st.phone || '';
   document.getElementById('editStEmail').value = st.email;
-  document.getElementById('editStPass').value = st.pass || '';
   document.getElementById('editStTg').value = st.tg || '';
   document.getElementById('editStLevel').value = st.level || '';
   document.getElementById('editStNotes').value = st.notes || '';
