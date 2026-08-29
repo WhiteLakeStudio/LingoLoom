@@ -248,6 +248,8 @@ body {
    🎛️ FIX ALL SELECT DROPDOWNS (РЕМОНТ СЕЛЕКТІВ)
    ========================================== */
 select {
+  width: 100% !important; /* Розтягуємо на всю ширину колонки */
+  display: block !important;
   appearance: none !important;
   -webkit-appearance: none !important;
   -moz-appearance: none !important;
@@ -261,7 +263,7 @@ select {
   cursor: pointer !important;
   outline: none !important;
   
-  /* Чітка одинарна стрілка без викривлень */
+  /* Чітка одинарна стрілка праворуч */
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'></polyline></svg>") !important;
   background-repeat: no-repeat !important;
   background-position: right 14px center !important;
