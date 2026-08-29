@@ -618,40 +618,10 @@ select {
 .cat-loading-img { width: 120px; height: 120px; object-fit: contain; }
 
 /* ==========================================
-   📱 MOBILE TABLE & LAYOUT FIXES
+   📱 MODERN MOBILE LESSON CARDS (ІДЕАЛЬНІ КАРТКИ НА МОБІЛЬНИХ)
    ========================================== */
 @media (max-width: 768px) {
-  /* Запобігаємо наповзанню заголовків таблиці */
-  .table-responsive {
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  .data-table {
-    min-width: 650px; /* Фіксуємо мінімальну ширину, щоб колонки мали простір */
-  }
-
-  .data-table th, 
-  .data-table td {
-    padding: 8px 10px !important;
-    font-size: 11px !important;
-    white-space: nowrap; /* Забороняємо тексту ламатися в кашу всередині ячейки */
-  }
-
-  /* Дозволяємо перенесення тільки для стовпця ДЗ та теми */
-  .data-table td:nth-child(2),
-  .data-table td:nth-child(4) {
-    white-space: normal;
-    min-width: 140px;
-  }
-}
-
-/* ==========================================
-   📱 MOBILE CARD-VIEW FOR TABLES (МОБІЛЬНЕ ОФОРМЛЕННЯ ТАБЛИЦЬ)
-   ========================================== */
-@media (max-width: 768px) {
-  /* Ховаємо звичайну шапку таблиці на телефонах */
+  /* Повністю ховаємо десктопну шапку таблиці */
   .data-table thead {
     display: none !important;
   }
@@ -664,48 +634,69 @@ select {
     width: 100% !important;
   }
 
-  /* Кожен рядок уроку стає окремою акуратною карткою */
+  /* Кожен урок — це окрема автономна картка в технічному стилі */
   .data-table tr {
     background: var(--card-bg) !important;
     border: 1px solid var(--border-strong) !important;
-    margin-bottom: 12px !important;
-    padding: 12px !important;
+    margin-bottom: 14px !important;
+    padding: 16px !important;
     box-shadow: var(--shadow-soft);
+    position: relative;
   }
 
+  /* Очищаємо дефолтні стилі ячейок */
   .data-table td {
     display: flex !important;
     justify-content: space-between !important;
-    align-items: center !important;
-    padding: 6px 0 !important;
+    align-items: flex-start !important;
+    padding: 8px 0 !important;
     background: transparent !important;
     border: none !important;
-    border-bottom: 1px dashed var(--border) !important;
+    border-bottom: 1px solid var(--border) !important;
     text-align: right !important;
     font-size: 12px !important;
   }
 
   .data-table td:last-child {
     border-bottom: none !important;
-    padding-top: 10px !important;
+    padding-top: 12px !important;
     justify-content: flex-end !important;
   }
 
-  /* Додаємо підказки (label) перед кожним полем на телефоні */
-  .data-table td:nth-child(1)::before { content: "Дата:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(2)::before { content: "Тема:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(3)::before { content: "Оплата:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(4)::before { content: "ДЗ та Дедлайн:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(5)::before { content: "Виконане ДЗ:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(6)::before { content: "Статус:"; font-weight: 800; color: var(--text-muted); }
-  .data-table td:nth-child(7)::before { content: "Дія:"; font-weight: 800; color: var(--text-muted); display: none; }
+  /* Чіткі ярлики-підписи для кожного поля */
+  .data-table td:nth-child(1)::before { content: "📅 Дата:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(2)::before { content: "📖 Тема:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(3)::before { content: "💳 Оплата:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(4)::before { content: "⏰ ДЗ / Дедлайн:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(5)::before { content: "📤 Виконане ДЗ:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(6)::before { content: "📌 Статус:"; font-weight: 800; color: var(--text-muted); }
+  .data-table td:nth-child(7)::before { display: none; }
 
-  /* Вирівнюємо вміст усередині ячейок на мобільному */
-  .data-table td > div {
+  /* Вирівнювання контенту всередині мобільної картки */
+  .data-table td > div,
+  .data-table td span {
     text-align: right;
   }
 
+  /* Посилання та чіпси робимо акуратно в рядок праворуч */
   .lesson-links-container {
-    align-items: flex-end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-top: 4px;
+  }
+
+  .lesson-link-chip {
+    font-size: 10px;
+    padding: 2px 6px;
+  }
+
+  /* Кнопки дій знизу картки */
+  .action-btn-group {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    justify-content: flex-end;
   }
 }
